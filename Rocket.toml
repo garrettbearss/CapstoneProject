@@ -1,0 +1,2 @@
+[default.databases.products]
+url = "products.sqlite"
