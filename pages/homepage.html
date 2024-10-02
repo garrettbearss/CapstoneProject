@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NASA Robotics Club Merchandise Homepage</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .navbar {
+            display: flex;
+            background-color: #333;
+            padding: 10px;
+        }
+        .navbar a {
+            color: white;
+            padding: 14px 20px;
+            text-align: center;
+            text-decoration: none;
+            font-size: 17px;
+        }
+        .navbar a:hover {
+            background-color: #ddd;
+            color: black;
+        }
+        .content {
+            padding: 20px;
+            text-align: center;
+        }
+        .content h1 {
+            color: #333;
+        }
+        .content p {
+            color: #555;
+            font-size: 18px;
+        }
+        /* Flexbox container for horizontal display */
+        .product-container {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 40px;
+        }
+        /* Styling for individual displays */
+        .product-display {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            max-width: 350px;
+        }
+        .product-display img {
+            width: 300px;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        .product-description {
+            font-size: 18px;
+            color: #555;
+            margin-bottom: 15px;
+        }
+        .buy-button, .learn-button, .shop-button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .buy-button:hover, .learn-button:hover, .shop-button:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation Menu Bar -->
+    <div class="navbar">
+        <a href="#">Homepage</a>
+        <a href="#">Products</a>
+        <a href="#">Donate</a>
+        <a href="#">About Us</a>
+        <a href="#">Admin Login</a>
+        <a href="#">Shopping Cart</a>
+    </div>
+
+    <!-- Main Content Section -->
+    <div class="content">
+        <h1>Welcome to NASA Robotics Club Merchandise Store!</h1>
+        <p>Explore our exclusive products, support the club through donations, and learn more about us.</p>
+
+        <!-- Flexbox Container for Information Displays -->
+        <div class="product-container">
+            <!-- Club Information Display -->
+            <div class="product-display">
+                <img src="NASA_Robotics_Logo.jpg" alt="NASA Robotics Logo">
+                <div class="product-description">Learn more about the club below</div>
+                <button class="learn-button">Learn More</button>
+            </div>
+
+            <!-- Shopping Information Display -->
+            <div class="product-display">
+                <img src="NASA_Robotics_Shirt.jpg" alt="NASA Robotics Products">
+                <div class="product-description">Shop exclusive products from the club</div>
+                <button class="shop-button">Browse Products</button>
+            </div>
+
+            <!-- Donation Information Display -->
+            <div class="product-display">
+                <img src="NASA_Robotics_Donation.jpg" alt="NASA Robotics Donation">
+                <div class="product-description">Donate to help fund club activities</div>
+                <button class="buy-button">Donate Now</button>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
