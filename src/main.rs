@@ -1,4 +1,4 @@
-use rocket::fs::FileServer;
+use rocket::fs::{FileServer, NamedFile};
 use rocket_db_pools::Database;
 
 #[macro_use]
@@ -58,10 +58,17 @@ mod api {
     }
 }
 
+// Route to set homepage.html on run
+#[get("/")]
+async fn homepage() -> Option<NamedFile> {
+    NamedFile::open("./pages/homepage.html").await.ok()
+}
+
 #[launch]
 async fn rocket() -> _ {
     rocket::build()
         .attach(api::Products::init())
+        .mount("/", routes![homepage])
         .mount("/", FileServer::from("./pages"))
         .mount("/api", routes![api::get_items, api::add_item])
 }
