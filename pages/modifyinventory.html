@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NASA Robotics Club - Modify Inventory</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .navbar {
+            display: flex;
+            align-items: center;
+            background-color: #333;
+            padding: 10px;
+        }
+        .navbar img {
+            height: 70px;
+            margin-right: 15px;
+        }
+        .navbar a {
+            color: white;
+            padding: 14px 20px;
+            text-align: center;
+            text-decoration: none;
+            font-size: 17px;
+        }
+        .navbar a:hover {
+            background-color: #ddd;
+            color: black;
+        }
+        .content {
+            padding: 20px;
+            text-align: center;
+        }
+        .content h1 {
+            color: #333;
+        }
+        .content p {
+            color: #555;
+            font-size: 18px;
+        }
+        .inventory-form {
+            margin: 20px auto;
+            max-width: 600px;
+            padding: 20px;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+        }
+        .inventory-form label {
+            display: block;
+            margin: 10px 0 5px;
+            font-size: 18px;
+            color: #333;
+        }
+        .inventory-form input, .inventory-form select {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .submit-button {
+            background-color: #002664;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .submit-button:hover {
+            background-color: #eaab00;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation Menu Bar -->
+    <div class="navbar">
+        <img src="images/KSRLogo_C.png" alt="Kent State Robotics Logo">
+        <a href="homepage.html">Homepage</a>
+        <a href="products.html">Products</a>
+        <a href="donate.html">Donate</a>
+        <a href="aboutus.html">About Us</a>
+        <a href="adminlogin.html">Admin Login</a>
+        <a href="shoppingcart.html">Shopping Cart</a>
+    </div>
+
+    <!-- Main Content Section -->
+    <div class="content">
+        <h1>Modify Inventory</h1>
+        <p>Add, update, or remove products from the club's merchandise inventory below.</p>
+
+        <!-- Inventory Modification Form -->
+        <div class="inventory-form">
+            <form action="modifyinventoryaction.html" method="post">
+                <label for="product-name">Product Name</label>
+                <input type="text" id="product-name" name="product_name" placeholder="Enter product name" required>
+
+                <label for="product-description">Product Description</label>
+                <input type="text" id="product-description" name="product_description" placeholder="Enter product description" required>
+
+                <label for="product-price">Product Price ($)</label>
+                <input type="number" id="product-price" name="product_price" placeholder="Enter product price" required>
+
+                <label for="product-quantity">Product Quantity</label>
+                <input type="number" id="product-quantity" name="product_quantity" placeholder="Enter product quantity" required>
+
+                <label for="action">Select Action</label>
+                <select id="action" name="action">
+                    <option value="add">Add Product</option>
+                    <option value="update">Update Product</option>
+                    <option value="remove">Remove Product</option>
+                </select>
+
+                <button type="submit" class="submit-button">Submit</button>
+            </form>
+        </div>
+    </div>
+
+</body>
+</html>
