@@ -12,8 +12,13 @@
         }
         .navbar {
             display: flex;
+            align-items: center;
             background-color: #333;
             padding: 10px;
+        }
+        .navbar img {
+            height: 70px;
+            margin-right: 15px;
         }
         .navbar a {
             color: white;
@@ -59,7 +64,7 @@
             border-radius: 5px;
         }
         .login-button {
-            background-color: #28a745;
+            background-color: #002664;
             color: white;
             border: none;
             padding: 10px 20px;
@@ -68,7 +73,7 @@
             border-radius: 5px;
         }
         .login-button:hover {
-            background-color: #218838;
+            background-color: #eaab00;
         }
         .error-message {
             color: red;
@@ -80,6 +85,7 @@
 
     <!-- Navigation Menu Bar -->
     <div class="navbar">
+        <img src="images/KSRLogo_C.png" alt="Kent State Robotics Logo">
         <a href="homepage.html">Homepage</a> 
         <a href="products.html">Products</a> 
         <a href="donate.html">Donate</a> 
@@ -95,27 +101,29 @@
 
         <!-- Login Form -->
         <div class="login-container">
-            <form class="login-form" action="admin_dashboard.html" method="post">
+            <form class="login-form" id="loginForm">
                 <div class="error-message" id="error-message"></div>
-                <input type="text" name="username" placeholder="Username" required>
-                <input type="password" name="password" placeholder="Password" required>
+                <input type="text" id="username" name="username" placeholder="Username" required>
+                <input type="password" id="password" name="password" placeholder="Password" required>
                 <button type="submit" class="login-button">Login</button>
             </form>
         </div>
     </div>
 
     <script>
-        // Simple JavaScript to handle login error display
-        const form = document.querySelector('form');
+        // JavaScript to handle login and redirection
+        const form = document.getElementById('loginForm');
         const errorMessage = document.getElementById('error-message');
 
         form.addEventListener('submit', function(event) {
-            // For demonstration, this just checks if the username is 'admin'
-            const username = form.username.value;
-            const password = form.password.value;
+            event.preventDefault(); // Prevent form submission
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
 
-            if (username !== 'admin' || password !== 'password123') {
-                event.preventDefault(); // Prevent form submission
+            if (username === 'admin' && password === 'password123') {
+                window.location.href = 'adminmenu.html'; // Redirect to admin menu
+            } else {
                 errorMessage.textContent = 'Invalid username or password.';
             }
         });
