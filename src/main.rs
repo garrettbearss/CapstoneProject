@@ -19,8 +19,7 @@ mod api {
     #[derive(Serialize, Deserialize)]
     struct Item {
         name: String,
-        price: f32,
-        quantity: usize,
+        desc: String,
     }
 
     #[allow(private_interfaces)]
@@ -32,8 +31,8 @@ mod api {
                 let row = row.ok()?;
                 Some(Item {
                     name: row.try_get("name").ok()?,
-                    price: row.try_get("price").ok()?,
-                    quantity: row.try_get::<u32, _>("quantity").ok()? as usize,
+                    desc: row.try_get("desc").ok()?,
+                    //quantity: row.try_get::<u32, _>("quantity").ok()? as usize,
                 })
             })
             .collect()
