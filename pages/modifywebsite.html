@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NASA Robotics Club - Modify Website Information</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .navbar {
+            display: flex;
+            align-items: center;
+            background-color: #333;
+            padding: 10px;
+        }
+        .navbar img {
+            height: 70px;
+            margin-right: 15px;
+        }
+        .navbar a {
+            color: white;
+            padding: 14px 20px;
+            text-align: center;
+            text-decoration: none;
+            font-size: 17px;
+        }
+        .navbar a:hover {
+            background-color: #ddd;
+            color: black;
+        }
+        .content {
+            padding: 20px;
+            text-align: center;
+        }
+        .content h1 {
+            color: #333;
+        }
+        .content p {
+            color: #555;
+            font-size: 18px;
+        }
+        .info-form {
+            margin: 20px auto;
+            max-width: 600px;
+            padding: 20px;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+        }
+        .info-form label {
+            display: block;
+            margin: 10px 0 5px;
+            font-size: 18px;
+            color: #333;
+        }
+        .info-form input, .info-form textarea {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .submit-button {
+            background-color: #002664;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .submit-button:hover {
+            background-color: #eaab00;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation Menu Bar -->
+    <div class="navbar">
+        <img src="images/KSRLogo_C.png" alt="Kent State Robotics Logo">
+        <a href="homepage.html">Homepage</a>
+        <a href="products.html">Products</a>
+        <a href="donate.html">Donate</a>
+        <a href="aboutus.html">About Us</a>
+        <a href="adminlogin.html">Admin Login</a>
+        <a href="shoppingcart.html">Shopping Cart</a>
+    </div>
+
+    <!-- Main Content Section -->
+    <div class="content">
+        <h1>Modify Website Information</h1>
+        <p>Update the contact information, mission statement, or other details displayed on the "About Us" page.</p>
+
+        <!-- Form to Modify Website Information -->
+        <div class="info-form">
+            <form action="modifywebsiteinfoaction.html" method="post">
+                <label for="club-name">Club Name</label>
+                <input type="text" id="club-name" name="club_name" placeholder="Enter club name" required>
+
+                <label for="contact-email">Contact Email</label>
+                <input type="email" id="contact-email" name="contact_email" placeholder="Enter contact email" required>
+
+                <label for="contact-phone">Contact Phone Number</label>
+                <input type="tel" id="contact-phone" name="contact_phone" placeholder="Enter contact phone number" required>
+
+                <label for="mission-statement">Mission Statement</label>
+                <textarea id="mission-statement" name="mission_statement" rows="4" placeholder="Enter mission statement" required></textarea>
+
+                <label for="address">Club Address</label>
+                <textarea id="address" name="address" rows="2" placeholder="Enter club address" required></textarea>
+
+                <button type="submit" class="submit-button">Submit</button>
+            </form>
+        </div>
+    </div>
+
+</body>
+</html>

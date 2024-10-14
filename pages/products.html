@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NASA Robotics Club Merchandise Homepage</title>
+    <title>NASA Robotics Club Products</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -42,13 +42,14 @@
             color: #555;
             font-size: 18px;
         }
-        /* Flexbox container for horizontal display */
+        /* Flexbox container for product display */
         .product-container {
             display: flex;
             justify-content: space-around;
+            flex-wrap: wrap;
             margin-top: 40px;
         }
-        /* Styling for individual displays */
+        /* Styling for individual product display */
         .product-display {
             display: flex;
             flex-direction: column;
@@ -56,10 +57,11 @@
             padding: 20px;
             border: 2px solid #ccc;
             border-radius: 10px;
-            max-width: 350px;
+            max-width: 300px;
+            margin: 20px;
         }
         .product-display img {
-            width: 300px;
+            width: 250px;
             height: auto;
             border: 1px solid #ddd;
             border-radius: 10px;
@@ -70,7 +72,7 @@
             color: #555;
             margin-bottom: 15px;
         }
-        .buy-button, .learn-button, .shop-button {
+        .buy-button {
             background-color: #002664;
             color: white;
             border: none;
@@ -79,7 +81,7 @@
             cursor: pointer;
             border-radius: 5px;
         }
-        .buy-button:hover, .learn-button:hover, .shop-button:hover {
+        .buy-button:hover {
             background-color: #eaab00;
         }
     </style>
@@ -99,31 +101,44 @@
 
     <!-- Main Content Section -->
     <div class="content">
-        <h1>Welcome to NASA Robotics Club Merchandise Store!</h1>
-        <p>Explore our exclusive products, support the club through donations, and learn more about us.</p>
+        <h1>NASA Robotics Club Merchandise</h1>
+        <p>Explore our collection of club merchandise.</p>
 
-        <!-- Flexbox Container for Information Displays -->
+        <!-- Flexbox Container for Products -->
         <div class="product-container">
-            <!-- Club Information Display -->
+
+            <!-- Product 1 -->
             <div class="product-display">
-                <img src="NASA_Robotics_Logo.jpg" alt="NASA Robotics Logo">
-                <div class="product-description">Learn more about the club below</div>
-                <button class="learn-button">Learn More</button>
+                <img src="item0.jpg" alt="item0">
+                <div class="product-description">Insert Item Name</div>
+                <div class="product-price">Insert Item Price</div>
+                <button class="buy-button">Add to Cart</button>
             </div>
 
-            <!-- Shopping Information Display -->
+            <!-- Product 2 -->
             <div class="product-display">
-                <img src="NASA_Robotics_Shirt.jpg" alt="NASA Robotics Products">
-                <div class="product-description">Shop exclusive products from the club</div>
-                <button class="shop-button">Browse Products</button>
+                <img src="item1.jpg" alt="item1">
+                <div class="product-description">Insert Item name</div>
+                <div class="product-price">Insert Item Price</div>
+                <button class="buy-button">Add to Cart</button>
             </div>
 
-            <!-- Donation Information Display -->
+            <!-- Product 3 -->
             <div class="product-display">
-                <img src="NASA_Robotics_Donation.jpg" alt="NASA Robotics Donation">
-                <div class="product-description">Donate to help fund club activities</div>
-                <button class="buy-button">Donate Now</button>
+                <img src="item2.jpg" alt="item2">
+                <div class="product-description">Insert Item Name</div>
+                <div class="product-price">Insert Item Price</div>
+                <button class="buy-button">Add to Cart</button>
             </div>
+
+            <!-- Product 4 -->
+            <div class="product-display">
+                <img src="item3.jpg" alt="item3">
+                <div class="product-description">Insert Item Name</div>
+                <div class="product-price">Insert Item Price</div>
+                <button class="buy-button">Add to Cart</button>
+            </div>
+
         </div>
     </div>
 

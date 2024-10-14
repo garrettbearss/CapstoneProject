@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NASA Robotics Club Merchandise Homepage</title>
+    <title>NASA Robotics Club Donation Page</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -42,35 +42,49 @@
             color: #555;
             font-size: 18px;
         }
-        /* Flexbox container for horizontal display */
-        .product-container {
+        /* Flexbox container for donation display */
+        .donation-container {
             display: flex;
-            justify-content: space-around;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             margin-top: 40px;
         }
-        /* Styling for individual displays */
-        .product-display {
+        /* Donation box styling */
+        .donation-display {
             display: flex;
             flex-direction: column;
             align-items: center;
             padding: 20px;
             border: 2px solid #ccc;
             border-radius: 10px;
-            max-width: 350px;
+            max-width: 500px;
+            margin: 20px auto;
         }
-        .product-display img {
-            width: 300px;
+        .donation-display img {
+            width: 400px;
             height: auto;
             border: 1px solid #ddd;
             border-radius: 10px;
             margin-bottom: 15px;
         }
-        .product-description {
+        .donation-description {
             font-size: 18px;
             color: #555;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
-        .buy-button, .learn-button, .shop-button {
+        /* Input and button styling */
+        .donation-form {
+            margin-bottom: 20px;
+        }
+        .donation-form input {
+            padding: 10px;
+            margin-right: 10px;
+            font-size: 16px;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+        }
+        .donate-button {
             background-color: #002664;
             color: white;
             border: none;
@@ -79,7 +93,7 @@
             cursor: pointer;
             border-radius: 5px;
         }
-        .buy-button:hover, .learn-button:hover, .shop-button:hover {
+        .donate-button:hover {
             background-color: #eaab00;
         }
     </style>
@@ -99,30 +113,21 @@
 
     <!-- Main Content Section -->
     <div class="content">
-        <h1>Welcome to NASA Robotics Club Merchandise Store!</h1>
-        <p>Explore our exclusive products, support the club through donations, and learn more about us.</p>
+        <h1>Support the NASA Robotics Club!</h1>
+        <p>Your donations help fund our club activities. We appreciate any amount you can give!</p>
 
-        <!-- Flexbox Container for Information Displays -->
-        <div class="product-container">
-            <!-- Club Information Display -->
-            <div class="product-display">
-                <img src="NASA_Robotics_Logo.jpg" alt="NASA Robotics Logo">
-                <div class="product-description">Learn more about the club below</div>
-                <button class="learn-button">Learn More</button>
-            </div>
-
-            <!-- Shopping Information Display -->
-            <div class="product-display">
-                <img src="NASA_Robotics_Shirt.jpg" alt="NASA Robotics Products">
-                <div class="product-description">Shop exclusive products from the club</div>
-                <button class="shop-button">Browse Products</button>
-            </div>
-
-            <!-- Donation Information Display -->
-            <div class="product-display">
+        <!-- Donation Form Container -->
+        <div class="donation-container">
+            <!-- Donation Display -->
+            <div class="donation-display">
                 <img src="NASA_Robotics_Donation.jpg" alt="NASA Robotics Donation">
-                <div class="product-description">Donate to help fund club activities</div>
-                <button class="buy-button">Donate Now</button>
+                <div class="donation-description">Help fund us today by donating to the NASA Robotics Club.</div>
+
+                <!-- Donation Form -->
+                <div class="donation-form">
+                    <input type="number" placeholder="Enter amount ($)" min="1" required>
+                    <button class="donate-button">Donate Now</button>
+                </div>
             </div>
         </div>
     </div>

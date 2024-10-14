@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NASA Robotics Club Merchandise Homepage</title>
+    <title>NASA Robotics Club Admin Menu</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -42,14 +42,12 @@
             color: #555;
             font-size: 18px;
         }
-        /* Flexbox container for horizontal display */
-        .product-container {
+        .admin-container {
             display: flex;
             justify-content: space-around;
             margin-top: 40px;
         }
-        /* Styling for individual displays */
-        .product-display {
+        .admin-menu {
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -58,19 +56,19 @@
             border-radius: 10px;
             max-width: 350px;
         }
-        .product-display img {
-            width: 300px;
+        .admin-menu img {
+            width: 150px;
             height: auto;
             border: 1px solid #ddd;
             border-radius: 10px;
             margin-bottom: 15px;
         }
-        .product-description {
+        .menu-description {
             font-size: 18px;
             color: #555;
             margin-bottom: 15px;
         }
-        .buy-button, .learn-button, .shop-button {
+        .menu-button {
             background-color: #002664;
             color: white;
             border: none;
@@ -79,7 +77,7 @@
             cursor: pointer;
             border-radius: 5px;
         }
-        .buy-button:hover, .learn-button:hover, .shop-button:hover {
+        .menu-button:hover {
             background-color: #eaab00;
         }
     </style>
@@ -97,32 +95,30 @@
         <a href="shoppingcart.html">Shopping Cart</a>
     </div>
 
-    <!-- Main Content Section -->
+    <!-- Admin Menu Content Section -->
     <div class="content">
-        <h1>Welcome to NASA Robotics Club Merchandise Store!</h1>
-        <p>Explore our exclusive products, support the club through donations, and learn more about us.</p>
+        <h1>Admin Menu</h1>
+        <p>Welcome (Insert User Name)!</p>
+        <p>Manage your club’s merchandise, website, and orders efficiently through the options below.</p>
 
-        <!-- Flexbox Container for Information Displays -->
-        <div class="product-container">
-            <!-- Club Information Display -->
-            <div class="product-display">
-                <img src="NASA_Robotics_Logo.jpg" alt="NASA Robotics Logo">
-                <div class="product-description">Learn more about the club below</div>
-                <button class="learn-button">Learn More</button>
+        <!-- Flexbox Container for Admin Menu Options -->
+        <div class="admin-container">
+            <!-- Modify Inventory -->
+            <div class="admin-menu">
+                <div class="menu-description">Modify Inventory</div>
+                <button class="menu-button" onclick="location.href='modifyinventory.html'">Go to Inventory</button>
             </div>
 
-            <!-- Shopping Information Display -->
-            <div class="product-display">
-                <img src="NASA_Robotics_Shirt.jpg" alt="NASA Robotics Products">
-                <div class="product-description">Shop exclusive products from the club</div>
-                <button class="shop-button">Browse Products</button>
+            <!-- Modify Website Information -->
+            <div class="admin-menu">
+                <div class="menu-description">Modify Website Information</div>
+                <button class="menu-button" onclick="location.href='modifywebsite.html'">Go to Website Info</button>
             </div>
 
-            <!-- Donation Information Display -->
-            <div class="product-display">
-                <img src="NASA_Robotics_Donation.jpg" alt="NASA Robotics Donation">
-                <div class="product-description">Donate to help fund club activities</div>
-                <button class="buy-button">Donate Now</button>
+            <!-- Check Order Status -->
+            <div class="admin-menu">
+                <div class="menu-description">Check Order Status</div>
+                <button class="menu-button" onclick="location.href='checkorderstatus.html'">Check Orders</button>
             </div>
         </div>
     </div>

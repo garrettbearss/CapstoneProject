@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NASA Robotics Club Merchandise Homepage</title>
+    <title>About Us - NASA Robotics Club</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -41,15 +41,16 @@
         .content p {
             color: #555;
             font-size: 18px;
+            line-height: 1.6;
         }
         /* Flexbox container for horizontal display */
-        .product-container {
+        .info-container {
             display: flex;
             justify-content: space-around;
             margin-top: 40px;
         }
-        /* Styling for individual displays */
-        .product-display {
+        /* Styling for individual sections */
+        .info-display {
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -58,19 +59,20 @@
             border-radius: 10px;
             max-width: 350px;
         }
-        .product-display img {
+        .info-display img {
             width: 300px;
             height: auto;
             border: 1px solid #ddd;
             border-radius: 10px;
             margin-bottom: 15px;
         }
-        .product-description {
+        .info-description {
             font-size: 18px;
             color: #555;
             margin-bottom: 15px;
+            text-align: left;
         }
-        .buy-button, .learn-button, .shop-button {
+        .learn-button {
             background-color: #002664;
             color: white;
             border: none;
@@ -79,7 +81,7 @@
             cursor: pointer;
             border-radius: 5px;
         }
-        .buy-button:hover, .learn-button:hover, .shop-button:hover {
+        .learn-button:hover {
             background-color: #eaab00;
         }
     </style>
@@ -89,40 +91,52 @@
     <!-- Navigation Menu Bar -->
     <div class="navbar">
         <img src="images/KSRLogo_C.png" alt="Kent State Robotics Logo">
-        <a href="homepage.html">Homepage</a>
-        <a href="products.html">Products</a>
-        <a href="donate.html">Donate</a>
-        <a href="aboutus.html">About Us</a>
-        <a href="adminlogin.html">Admin Login</a>
-        <a href="shoppingcart.html">Shopping Cart</a>
+        <a href="homepage.html">Homepage</a> 
+        <a href="products.html">Products</a> 
+        <a href="donate.html">Donate</a> 
+        <a href="aboutus.html">About Us</a> 
+        <a href="adminlogin.html">Admin Login</a> 
+        <a href="shoppingcart.html">Shopping Cart</a> 
     </div>
 
     <!-- Main Content Section -->
     <div class="content">
-        <h1>Welcome to NASA Robotics Club Merchandise Store!</h1>
-        <p>Explore our exclusive products, support the club through donations, and learn more about us.</p>
+        <h1>About NASA Robotics Club</h1>
+        <p>
+            Insert Text about Club
+        </p>
+
+        <p>
+            Insert Text about Club
+        </p>
 
         <!-- Flexbox Container for Information Displays -->
-        <div class="product-container">
-            <!-- Club Information Display -->
-            <div class="product-display">
-                <img src="NASA_Robotics_Logo.jpg" alt="NASA Robotics Logo">
-                <div class="product-description">Learn more about the club below</div>
-                <button class="learn-button">Learn More</button>
+        <div class="info-container">
+            <!-- Club History Section -->
+            <div class="info-display">
+                <img src="NASA_Robotics_History.jpg" alt="NASA Robotics History">
+                <div class="info-description">
+                    <strong>Our History</strong><br>
+                    Insert Text about Club History
+                </div>
             </div>
 
-            <!-- Shopping Information Display -->
-            <div class="product-display">
-                <img src="NASA_Robotics_Shirt.jpg" alt="NASA Robotics Products">
-                <div class="product-description">Shop exclusive products from the club</div>
-                <button class="shop-button">Browse Products</button>
+            <!-- Club Activities Section -->
+            <div class="info-display">
+                <img src="NASA_Robotics_Activities.jpg" alt="NASA Robotics Activities">
+                <div class="info-description">
+                    <strong>Our Activities</strong><br>
+                    Insert Text about Club Activites
+                </div>
             </div>
 
-            <!-- Donation Information Display -->
-            <div class="product-display">
-                <img src="NASA_Robotics_Donation.jpg" alt="NASA Robotics Donation">
-                <div class="product-description">Donate to help fund club activities</div>
-                <button class="buy-button">Donate Now</button>
+            <!-- Join the Club Section -->
+            <div class="info-display">
+                <img src="NASA_Robotics_Join.jpg" alt="Join NASA Robotics">
+                <div class="info-description">
+                    <strong>Join Us</strong><br>
+                    Insert Text about how to join
+                </div>
             </div>
         </div>
     </div>
