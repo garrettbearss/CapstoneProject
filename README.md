@@ -1,1 +1,1 @@
-# Capstone Project
+# Capstone Project - Kent State Robotics Merch Site
