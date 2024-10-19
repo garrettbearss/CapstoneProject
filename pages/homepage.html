@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NASA Robotics Club Merchandise Homepage</title>
+    <title>Kent State Robotics Club - Homepage</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -30,6 +30,12 @@
         .navbar a:hover {
             background-color: #ddd;
             color: black;
+        }
+        .navbar .colorblind-img {
+            height: 45px;
+            width: 45px;
+            margin-left: 15px;
+            cursor: pointer;
         }
         .content {
             padding: 20px;
@@ -95,37 +101,79 @@
         <a href="aboutus.html">About Us</a>
         <a href="adminlogin.html">Admin Login</a>
         <a href="shoppingcart.html">Shopping Cart</a>
+        <img src="images/Colorblind_Off.png" alt="Color Blind Off" class="colorblind-img" id="colorblind-button">
     </div>
 
     <!-- Main Content Section -->
     <div class="content">
-        <h1>Welcome to NASA Robotics Club Merchandise Store!</h1>
+        <h1>Welcome to Kent State Robotics Club Merchandise Store!</h1>
         <p>Explore our exclusive products, support the club through donations, and learn more about us.</p>
 
         <!-- Flexbox Container for Information Displays -->
         <div class="product-container">
             <!-- Club Information Display -->
             <div class="product-display">
-                <img src="NASA_Robotics_Logo.jpg" alt="NASA Robotics Logo">
-                <div class="product-description">Learn more about the club below</div>
+                <img src="images/KSRLogo_B.png" alt="NASA Robotics Logo">
+                <div class="product-description">Learn more about the Kent State Robotics club below</div>
+                <a href="aboutus.html">
                 <button class="learn-button">Learn More</button>
+                </a>
             </div>
 
             <!-- Shopping Information Display -->
             <div class="product-display">
                 <img src="NASA_Robotics_Shirt.jpg" alt="NASA Robotics Products">
                 <div class="product-description">Shop exclusive products from the club</div>
+                <a href="products.html">
                 <button class="shop-button">Browse Products</button>
+                </a>
             </div>
 
             <!-- Donation Information Display -->
             <div class="product-display">
                 <img src="NASA_Robotics_Donation.jpg" alt="NASA Robotics Donation">
                 <div class="product-description">Donate to help fund club activities</div>
+                <a href="donate.html">
                 <button class="buy-button">Donate Now</button>
+                </a>
             </div>
         </div>
     </div>
+
+    <!-- JavaScript for toggling the colorblind image -->
+    <script>
+        const colorblindButton = document.getElementById('colorblind-button');
+
+        // Function to update the image source from localStorage
+        function updateColorblindImage() {
+            const savedState = localStorage.getItem('colorblindMode');
+            if (savedState) {
+                colorblindButton.setAttribute('src', savedState);  // Set to saved image source
+            }
+        }
+
+        // Add a click event listener to toggle the image source
+        colorblindButton.addEventListener('click', function() {
+            const currentSrc = colorblindButton.getAttribute('src');
+            let newSrc;
+
+            // Toggle between 'Colorblind_Off.png' and 'Colorblind_On.png'
+            if (currentSrc === 'images/Colorblind_Off.png') {
+                newSrc = 'images/Colorblind_On.png';
+            } else {
+                newSrc = 'images/Colorblind_Off.png';
+            }
+
+            // Set the new image source
+            colorblindButton.setAttribute('src', newSrc);
+
+            // Store the new state in localStorage
+            localStorage.setItem('colorblindMode', newSrc);
+        });
+
+        // Update the image based on saved state in localStorage on page load
+        window.addEventListener('load', updateColorblindImage);
+    </script>
 
 </body>
 </html>
