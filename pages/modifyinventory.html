@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NASA Robotics Club Donation Page</title>
+    <title>NASA Robotics Club - Modify Inventory</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -42,49 +42,28 @@
             color: #555;
             font-size: 18px;
         }
-        /* Flexbox container for donation display */
-        .donation-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            margin-top: 40px;
-        }
-        /* Donation box styling */
-        .donation-display {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        .inventory-form {
+            margin: 20px auto;
+            max-width: 600px;
             padding: 20px;
             border: 2px solid #ccc;
             border-radius: 10px;
-            max-width: 500px;
-            margin: 20px auto;
         }
-        .donation-display img {
-            width: 400px;
-            height: auto;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            margin-bottom: 15px;
-        }
-        .donation-description {
+        .inventory-form label {
+            display: block;
+            margin: 10px 0 5px;
             font-size: 18px;
-            color: #555;
-            margin-bottom: 20px;
+            color: #333;
         }
-        /* Input and button styling */
-        .donation-form {
-            margin-bottom: 20px;
-        }
-        .donation-form input {
+        .inventory-form input, .inventory-form select {
+            width: 100%;
             padding: 10px;
-            margin-right: 10px;
             font-size: 16px;
-            border: 2px solid #ccc;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
             border-radius: 5px;
         }
-        .donate-button {
+        .submit-button {
             background-color: #002664;
             color: white;
             border: none;
@@ -93,7 +72,7 @@
             cursor: pointer;
             border-radius: 5px;
         }
-        .donate-button:hover {
+        .submit-button:hover {
             background-color: #eaab00;
         }
     </style>
@@ -113,22 +92,33 @@
 
     <!-- Main Content Section -->
     <div class="content">
-        <h1>Support the NASA Robotics Club!</h1>
-        <p>Your donations help fund our club activities. We appreciate any amount you can give!</p>
+        <h1>Modify Inventory</h1>
+        <p>Add, update, or remove products from the club's merchandise inventory below.</p>
 
-        <!-- Donation Form Container -->
-        <div class="donation-container">
-            <!-- Donation Display -->
-            <div class="donation-display">
-                <img src="NASA_Robotics_Donation.jpg" alt="NASA Robotics Donation">
-                <div class="donation-description">Help fund us today by donating to the NASA Robotics Club.</div>
+        <!-- Inventory Modification Form -->
+        <div class="inventory-form">
+            <form action="modifyinventoryaction.html" method="post">
+                <label for="product-name">Product Name</label>
+                <input type="text" id="product-name" name="product_name" placeholder="Enter product name" required>
 
-                <!-- Donation Form -->
-                <div class="donation-form">
-                    <input type="number" placeholder="Enter amount ($)" min="1" required>
-                    <button class="donate-button">Donate Now</button>
-                </div>
-            </div>
+                <label for="product-description">Product Description</label>
+                <input type="text" id="product-description" name="product_description" placeholder="Enter product description" required>
+
+                <label for="product-price">Product Price ($)</label>
+                <input type="number" id="product-price" name="product_price" placeholder="Enter product price" required>
+
+                <label for="product-quantity">Product Quantity</label>
+                <input type="number" id="product-quantity" name="product_quantity" placeholder="Enter product quantity" required>
+
+                <label for="action">Select Action</label>
+                <select id="action" name="action">
+                    <option value="add">Add Product</option>
+                    <option value="update">Update Product</option>
+                    <option value="remove">Remove Product</option>
+                </select>
+
+                <button type="submit" class="submit-button">Submit</button>
+            </form>
         </div>
     </div>
 

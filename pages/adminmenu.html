@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>About Us - NASA Robotics Club</title>
+    <title>NASA Robotics Club Admin Menu</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -41,16 +41,13 @@
         .content p {
             color: #555;
             font-size: 18px;
-            line-height: 1.6;
         }
-        /* Flexbox container for horizontal display */
-        .info-container {
+        .admin-container {
             display: flex;
             justify-content: space-around;
             margin-top: 40px;
         }
-        /* Styling for individual sections */
-        .info-display {
+        .admin-menu {
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -59,20 +56,19 @@
             border-radius: 10px;
             max-width: 350px;
         }
-        .info-display img {
-            width: 300px;
+        .admin-menu img {
+            width: 150px;
             height: auto;
             border: 1px solid #ddd;
             border-radius: 10px;
             margin-bottom: 15px;
         }
-        .info-description {
+        .menu-description {
             font-size: 18px;
             color: #555;
             margin-bottom: 15px;
-            text-align: left;
         }
-        .learn-button {
+        .menu-button {
             background-color: #002664;
             color: white;
             border: none;
@@ -81,7 +77,7 @@
             cursor: pointer;
             border-radius: 5px;
         }
-        .learn-button:hover {
+        .menu-button:hover {
             background-color: #eaab00;
         }
     </style>
@@ -91,52 +87,38 @@
     <!-- Navigation Menu Bar -->
     <div class="navbar">
         <img src="images/KSRLogo_C.png" alt="Kent State Robotics Logo">
-        <a href="homepage.html">Homepage</a> 
-        <a href="products.html">Products</a> 
-        <a href="donate.html">Donate</a> 
-        <a href="aboutus.html">About Us</a> 
-        <a href="adminlogin.html">Admin Login</a> 
-        <a href="shoppingcart.html">Shopping Cart</a> 
+        <a href="homepage.html">Homepage</a>
+        <a href="products.html">Products</a>
+        <a href="donate.html">Donate</a>
+        <a href="aboutus.html">About Us</a>
+        <a href="adminlogin.html">Admin Login</a>
+        <a href="shoppingcart.html">Shopping Cart</a>
     </div>
 
-    <!-- Main Content Section -->
+    <!-- Admin Menu Content Section -->
     <div class="content">
-        <h1>About NASA Robotics Club</h1>
-        <p>
-            Insert Text about Club
-        </p>
+        <h1>Admin Menu</h1>
+        <p>Welcome (Insert User Name)!</p>
+        <p>Manage your club’s merchandise, website, and orders efficiently through the options below.</p>
 
-        <p>
-            Insert Text about Club
-        </p>
-
-        <!-- Flexbox Container for Information Displays -->
-        <div class="info-container">
-            <!-- Club History Section -->
-            <div class="info-display">
-                <img src="NASA_Robotics_History.jpg" alt="NASA Robotics History">
-                <div class="info-description">
-                    <strong>Our History</strong><br>
-                    Insert Text about Club History
-                </div>
+        <!-- Flexbox Container for Admin Menu Options -->
+        <div class="admin-container">
+            <!-- Modify Inventory -->
+            <div class="admin-menu">
+                <div class="menu-description">Modify Inventory</div>
+                <button class="menu-button" onclick="location.href='modifyinventory.html'">Go to Inventory</button>
             </div>
 
-            <!-- Club Activities Section -->
-            <div class="info-display">
-                <img src="NASA_Robotics_Activities.jpg" alt="NASA Robotics Activities">
-                <div class="info-description">
-                    <strong>Our Activities</strong><br>
-                    Insert Text about Club Activites
-                </div>
+            <!-- Modify Website Information -->
+            <div class="admin-menu">
+                <div class="menu-description">Modify Website Information</div>
+                <button class="menu-button" onclick="location.href='modifywebsite.html'">Go to Website Info</button>
             </div>
 
-            <!-- Join the Club Section -->
-            <div class="info-display">
-                <img src="NASA_Robotics_Join.jpg" alt="Join NASA Robotics">
-                <div class="info-description">
-                    <strong>Join Us</strong><br>
-                    Insert Text about how to join
-                </div>
+            <!-- Check Order Status -->
+            <div class="admin-menu">
+                <div class="menu-description">Check Order Status</div>
+                <button class="menu-button" onclick="location.href='checkorderstatus.html'">Check Orders</button>
             </div>
         </div>
     </div>

@@ -3,12 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NASA Robotics Club Donation Page</title>
+    <title>NASA Robotics Club - Check Order Status</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
         .navbar {
             display: flex;
@@ -32,6 +35,11 @@
             color: black;
         }
         .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             padding: 20px;
             text-align: center;
         }
@@ -42,49 +50,28 @@
             color: #555;
             font-size: 18px;
         }
-        /* Flexbox container for donation display */
-        .donation-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            margin-top: 40px;
-        }
-        /* Donation box styling */
-        .donation-display {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        .order-status-form {
+            margin: 20px auto;
+            max-width: 600px;
             padding: 20px;
             border: 2px solid #ccc;
             border-radius: 10px;
-            max-width: 500px;
-            margin: 20px auto;
         }
-        .donation-display img {
-            width: 400px;
-            height: auto;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            margin-bottom: 15px;
-        }
-        .donation-description {
+        .order-status-form label {
+            display: block;
+            margin: 10px 0 5px;
             font-size: 18px;
-            color: #555;
-            margin-bottom: 20px;
+            color: #333;
         }
-        /* Input and button styling */
-        .donation-form {
-            margin-bottom: 20px;
-        }
-        .donation-form input {
+        .order-status-form input {
+            width: 100%;
             padding: 10px;
-            margin-right: 10px;
             font-size: 16px;
-            border: 2px solid #ccc;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
             border-radius: 5px;
         }
-        .donate-button {
+        .check-button {
             background-color: #002664;
             color: white;
             border: none;
@@ -93,8 +80,16 @@
             cursor: pointer;
             border-radius: 5px;
         }
-        .donate-button:hover {
+        .check-button:hover {
             background-color: #eaab00;
+        }
+        .status-display {
+            margin-top: 20px;
+            padding: 10px;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            max-width: 600px;
+            text-align: center;
         }
     </style>
 </head>
@@ -113,22 +108,23 @@
 
     <!-- Main Content Section -->
     <div class="content">
-        <h1>Support the NASA Robotics Club!</h1>
-        <p>Your donations help fund our club activities. We appreciate any amount you can give!</p>
+        <h1>Check Order Status</h1>
+        <p>Enter your order ID below to check the status of your order.</p>
 
-        <!-- Donation Form Container -->
-        <div class="donation-container">
-            <!-- Donation Display -->
-            <div class="donation-display">
-                <img src="NASA_Robotics_Donation.jpg" alt="NASA Robotics Donation">
-                <div class="donation-description">Help fund us today by donating to the NASA Robotics Club.</div>
+        <!-- Form to Check Order Status -->
+        <div class="order-status-form">
+            <form action="checkorderstatusaction.html" method="post">
+                <label for="order-id">Order ID</label>
+                <input type="text" id="order-id" name="order_id" placeholder="Enter your Order ID" required>
+                
+                <button type="submit" class="check-button">Check Status</button>
+            </form>
+        </div>
 
-                <!-- Donation Form -->
-                <div class="donation-form">
-                    <input type="number" placeholder="Enter amount ($)" min="1" required>
-                    <button class="donate-button">Donate Now</button>
-                </div>
-            </div>
+        <!-- Display Order Status (This section can be populated dynamically with order status details) -->
+        <div class="status-display">
+            <!-- Order status details can be shown here after user checks status -->
+            <p>Order Status: Awaiting Order ID...</p>
         </div>
     </div>
 

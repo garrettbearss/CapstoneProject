@@ -1,2 +1,2 @@
-[default.databases.products]
-url = "products.sqlite"
+[default.databases.db]
+url = "db.sqlite"
