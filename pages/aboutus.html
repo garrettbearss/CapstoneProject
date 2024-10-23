@@ -9,12 +9,17 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+        }
+        *, *::before, *::after {
+            box-sizing: inherit;
         }
         .navbar {
             display: flex;
             align-items: center;
             background-color: #333;
             padding: 10px;
+            flex-wrap: wrap;
         }
         .navbar img {
             height: 70px;
@@ -26,6 +31,7 @@
             text-align: center;
             text-decoration: none;
             font-size: 17px;
+            white-space: nowrap;
         }
         .navbar a:hover {
             background-color: #ddd;
@@ -34,7 +40,7 @@
         .navbar .colorblind-img {
             height: 45px;
             width: 45px;
-            margin-left: 15px;
+            margin-left: auto;
             cursor: pointer;
         }
         .content {
@@ -43,15 +49,17 @@
         }
         .content h1 {
             color: #333;
+            font-size: 2.5em;
         }
         .content p {
             color: #555;
-            font-size: 18px;
+            font-size: 1.2em;
             line-height: 1.6;
         }
         /* Flexbox container for horizontal display */
         .info-container {
             display: flex;
+            flex-wrap: wrap;
             justify-content: space-around;
             margin-top: 40px;
         }
@@ -64,9 +72,12 @@
             border: 2px solid #ccc;
             border-radius: 10px;
             max-width: 350px;
+            width: 100%;
+            margin-bottom: 20px;
         }
         .info-display img {
-            width: 300px;
+            width: 100%;
+            max-width: 300px;
             height: auto;
             border: 1px solid #ddd;
             border-radius: 10px;
@@ -90,6 +101,38 @@
         .learn-button:hover {
             background-color: #eaab00;
         }
+
+        .contact-info {
+            margin-top: 40px;
+            font-size: 1.2em;
+            text-align: center;
+            color: #333;
+        }
+
+        @media (max-width: 768px) {
+            .content h1 {
+                font-size: 2em;
+            }
+            .content p {
+                font-size: 1em;
+            }
+            .info-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            .info-display {
+                max-width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .navbar a {
+                font-size: 14px;
+            }
+            .content h1 {
+                font-size: 1.7em;
+            }
+        }
     </style>
 </head>
 <body>
@@ -109,13 +152,8 @@
     <!-- Main Content Section -->
     <div class="content">
         <h1>About Kent State Robotics Club</h1>
-        <p>
-            Insert Text about Club
-        </p>
-
-        <p>
-            Insert Text about Club
-        </p>
+        <p id="aboutClub1">Insert Text about Club 1</p>
+        <p id="aboutClub2">Insert Text about Club 2</p>
 
         <!-- Flexbox Container for Information Displays -->
         <div class="info-container">
@@ -124,7 +162,7 @@
                 <img src="NASA_Robotics_History.jpg" alt="NASA Robotics History">
                 <div class="info-description">
                     <strong>Our History</strong><br>
-                    Insert Text about Club History
+                    <p id="clubHistory">Insert Text about Club History</p>
                 </div>
             </div>
 
@@ -133,7 +171,7 @@
                 <img src="NASA_Robotics_Activities.jpg" alt="NASA Robotics Activities">
                 <div class="info-description">
                     <strong>Our Activities</strong><br>
-                    Insert Text about Club Activites
+                    <p id="clubActivities">Insert Text about Club Activities</p>
                 </div>
             </div>
 
@@ -142,15 +180,51 @@
                 <img src="NASA_Robotics_Join.jpg" alt="Join NASA Robotics">
                 <div class="info-description">
                     <strong>Join Us</strong><br>
-                    Insert Text about how to join
+                    <p id="joinClub">Insert Text about how to join</p>
                 </div>
             </div>
         </div>
+
+        <!-- Contact Information Section -->
+        <div class="contact-info">
+            <p><strong>Club Address:</strong> <span id="contact-address">Insert Club Address Here</span></p>
+            <p><strong>Contact Email:</strong> <span id="contact-email">Insert Email Here</span></p>
+        </div>
     </div>
 
-    <!-- JavaScript for toggling the colorblind image -->
+    <!-- JavaScript for fetching data and toggling colorblind image -->
     <script>
         const colorblindButton = document.getElementById('colorblind-button');
+
+        // Fetch data from the server and populate the aboutus page
+        async function fetchAboutUsData() {
+            try {
+                const response = await fetch('/api/get_websiteinfo');
+                const data = await response.json();
+                data.forEach(item => {
+                    if (item.name === "aboutClub1") {
+                        document.getElementById('aboutClub1').textContent = item.desc;
+                    } else if (item.name === "aboutClub2") {
+                        document.getElementById('aboutClub2').textContent = item.desc;
+                    } else if (item.name === "clubHistory") {
+                        document.getElementById('clubHistory').textContent = item.desc;
+                    } else if (item.name === "clubActivities") {
+                        document.getElementById('clubActivities').textContent = item.desc;
+                    } else if (item.name === "joinClub") {
+                        document.getElementById('joinClub').textContent = item.desc;
+                    } else if (item.name === "contact_address") {
+                        document.getElementById('contact-address').textContent = item.desc;
+                    } else if (item.name === "contact_email") {
+                        document.getElementById('contact-email').textContent = item.desc;
+                    }
+                });
+            } catch (error) {
+                console.error('Error fetching website information data:', error);
+            }
+        }
+
+        // Call the fetch function on load
+        window.addEventListener('load', fetchAboutUsData);
 
         // Function to update the image source from localStorage
         function updateColorblindImage() {
@@ -163,19 +237,8 @@
         // Add a click event listener to toggle the image source
         colorblindButton.addEventListener('click', function() {
             const currentSrc = colorblindButton.getAttribute('src');
-            let newSrc;
-
-            // Toggle between 'Colorblind_Off.png' and 'Colorblind_On.png'
-            if (currentSrc === 'images/Colorblind_Off.png') {
-                newSrc = 'images/Colorblind_On.png';
-            } else {
-                newSrc = 'images/Colorblind_Off.png';
-            }
-
-            // Set the new image source
+            const newSrc = currentSrc === 'images/Colorblind_Off.png' ? 'images/Colorblind_On.png' : 'images/Colorblind_Off.png';
             colorblindButton.setAttribute('src', newSrc);
-
-            // Store the new state in localStorage
             localStorage.setItem('colorblindMode', newSrc);
         });
 
