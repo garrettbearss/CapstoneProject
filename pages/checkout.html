@@ -3,15 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kent State Robotics Club - Check Order Status</title>
+    <title>Kent State Robotics Club - Checkout</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
             box-sizing: border-box;
         }
         *, *::before, *::after {
@@ -47,13 +44,11 @@
             cursor: pointer;
         }
         .content {
-            flex: 1;
+            padding: 20px;
+            text-align: center;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            padding: 20px;
-            text-align: center;
         }
         .content h1 {
             color: #333;
@@ -64,51 +59,54 @@
             font-size: 1.2em;
             margin-bottom: 30px;
         }
-        .order-status-form {
-            margin: 20px auto;
-            max-width: 600px;
-            width: 100%;
-            padding: 20px;
-            border: 2px solid #ccc;
-            border-radius: 10px;
+        .total-info {
             background-color: #f9f9f9;
-        }
-        .order-status-form label {
-            display: block;
-            margin: 10px 0 5px;
-            font-size: 18px;
-            color: #333;
-        }
-        .order-status-form input {
-            width: 100%;
-            padding: 10px;
-            font-size: 16px;
+            padding: 20px;
             margin-bottom: 20px;
             border: 1px solid #ccc;
-            border-radius: 5px;
+            border-radius: 10px;
+            text-align: left;
+            max-width: 500px;
+            width: 100%;
         }
-        .check-button {
+        .total-info p {
+            font-size: 18px;
+            margin: 5px 0;
+        }
+        .payment-form {
+            max-width: 500px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: #fff;
+        }
+        .payment-form label {
+            font-size: 18px;
+            display: block;
+            margin-bottom: 10px;
+        }
+        .payment-form input {
+            padding: 10px;
+            font-size: 16px;
+            width: 100%;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        .payment-form button {
             background-color: #002664;
             color: white;
             border: none;
-            padding: 10px 20px;
+            padding: 15px 20px;
             font-size: 18px;
             cursor: pointer;
             border-radius: 5px;
             width: 100%;
         }
-        .check-button:hover {
+        .payment-form button:hover {
             background-color: #eaab00;
-        }
-        .status-display {
-            margin-top: 20px;
-            padding: 10px;
-            border: 2px solid #ccc;
-            border-radius: 10px;
-            max-width: 600px;
-            width: 100%;
-            text-align: center;
-            background-color: #f9f9f9;
         }
 
         @media (max-width: 768px) {
@@ -117,9 +115,6 @@
             }
             .content p {
                 font-size: 1em;
-            }
-            .order-status-form, .status-display {
-                max-width: 90%; 
             }
         }
 
@@ -132,9 +127,6 @@
             }
             .content p {
                 font-size: 0.9em;
-            }
-            .order-status-form, .status-display {
-                max-width: 100%;
             }
         }
     </style>
@@ -155,28 +147,95 @@
 
     <!-- Main Content Section -->
     <div class="content">
-        <h1>Check Order Status</h1>
-        <p>Enter your order ID below to check the status of your order.</p>
+        <h1>Payment Verification</h1>
+        <p>Please review your order and enter your payment details below to complete the purchase.</p>
 
-        <!-- Form to Check Order Status -->
-        <div class="order-status-form">
-            <form action="checkorderstatusaction.html" method="post">
-                <label for="order-id">Order ID</label>
-                <input type="text" id="order-id" name="order_id" placeholder="Enter your Order ID" required>
-                
-                <button type="submit" class="check-button">Check Status</button>
-            </form>
+        <!-- Placeholder Section for Total Amount and Number of Products -->
+        <div class="total-info">
+            <p><strong>Number of Products:</strong> <span id="product-count">Insert Product Count</span></p>
+            <p><strong>Total Amount Due:</strong> <span id="total-amount">Insert total</span></p>
         </div>
 
-        <!-- Display Order Status (This section can be populated dynamically with order status details) -->
-        <div class="status-display">
-            <!-- Order status details can be shown here after user checks status -->
-            <p>Order Status: Awaiting Order ID...</p>
+        <!-- Payment Form -->
+        <div class="payment-form">
+            <form id="payment-form">
+                <label for="cardholder-name">Cardholder Name</label>
+                <input type="text" id="cardholder-name" name="cardholder-name" required>
+
+                <!-- Stripe Card Element will be inserted here -->
+                <div id="card-element"></div>
+
+                <!-- Error message for card validation errors -->
+                <div id="card-errors" role="alert"></div>
+
+                <!-- Updated Pay Now Button -->
+                <button type="submit" id="pay-now-button">Pay Now</button>
+            </form>
         </div>
     </div>
 
-    <!-- JavaScript for toggling the colorblind image -->
+    <!-- Stripe JavaScript Library -->
+    <script src="https://js.stripe.com/v3/"></script>
+
+    <!-- JavaScript for handling Stripe payment -->
     <script>
+        // Create a Stripe client
+        var stripe = Stripe('your-publishable-key-here');
+
+        // Create an instance of Elements
+        var elements = stripe.elements();
+
+        // Custom styling for the card element
+        var style = {
+            base: {
+                fontSize: '16px',
+                color: '#32325d',
+            },
+        };
+
+        // Create an instance of the card Element
+        var card = elements.create('card', {style: style});
+
+        // Add an instance of the card Element into the `card-element` div
+        card.mount('#card-element');
+
+        // Handle real-time validation errors from the card Element
+        card.on('change', function(event) {
+            var displayError = document.getElementById('card-errors');
+            if (event.error) {
+                displayError.textContent = event.error.message;
+            } else {
+                displayError.textContent = '';
+            }
+        });
+
+        // Handle form submission
+        var form = document.getElementById('payment-form');
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            stripe.createToken(card).then(function(result) {
+                if (result.error) {
+                    // Inform the user if there was an error
+                    var errorElement = document.getElementById('card-errors');
+                    errorElement.textContent = result.error.message;
+                } else {
+                    // Send the token to your server
+                    stripeTokenHandler(result.token);
+                }
+            });
+        });
+
+        // Submit the token to your server
+        function stripeTokenHandler(token) {
+            // You can send the token to your server for processing or mock the process
+            console.log('Token created:', token);
+
+            // Redirect to the order confirmation page after successful token creation
+            window.location.href = 'orderconfirmation.html';
+        }
+
+        // JavaScript for toggling the colorblind image
         const colorblindButton = document.getElementById('colorblind-button');
 
         // Function to update the image source from localStorage
@@ -209,6 +268,6 @@
         // Update the image based on saved state in localStorage on page load
         window.addEventListener('load', updateColorblindImage);
     </script>
- 
+
 </body>
 </html>

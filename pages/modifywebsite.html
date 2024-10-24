@@ -9,9 +9,14 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+        }
+        *, *::before, *::after {
+            box-sizing: inherit;
         }
         .navbar {
             display: flex;
+            flex-wrap: wrap;
             align-items: center;
             background-color: #333;
             padding: 10px;
@@ -26,6 +31,7 @@
             text-align: center;
             text-decoration: none;
             font-size: 17px;
+            white-space: nowrap;
         }
         .navbar a:hover {
             background-color: #ddd;
@@ -34,7 +40,7 @@
         .navbar .colorblind-img {
             height: 45px;
             width: 45px;
-            margin-left: 15px;
+            margin-left: auto;
             cursor: pointer;
         }
         .content {
@@ -43,17 +49,19 @@
         }
         .content h1 {
             color: #333;
+            font-size: 2em;
         }
         .content p {
             color: #555;
-            font-size: 18px;
+            font-size: 1.2em;
         }
         .info-form {
-            margin: 20px auto;
-            max-width: 600px;
+            margin: 0 auto;
+            max-width: 90%;
             padding: 20px;
             border: 2px solid #ccc;
             border-radius: 10px;
+            background-color: #f9f9f9;
         }
         .info-form label {
             display: block;
@@ -73,13 +81,29 @@
             background-color: #002664;
             color: white;
             border: none;
-            padding: 10px 20px;
+            padding: 15px;
             font-size: 18px;
             cursor: pointer;
             border-radius: 5px;
+            width: 100%;
         }
         .submit-button:hover {
             background-color: #eaab00;
+        }
+
+        @media (min-width: 768px) {
+            .navbar img {
+                height: 70px;
+            }
+            .content h1 {
+                font-size: 2.5em;
+            }
+            .content p {
+                font-size: 1.5em;
+            }
+            .info-form {
+                max-width: 600px;
+            }
         }
     </style>
 </head>
@@ -100,25 +124,31 @@
     <!-- Main Content Section -->
     <div class="content">
         <h1>Modify Website Information</h1>
-        <p>Update the contact information, mission statement, or other details displayed on the "About Us" page.</p>
+        <p>Update the club's key details below.</p>
 
         <!-- Form to Modify Website Information -->
         <div class="info-form">
-            <form action="modifywebsiteinfoaction.html" method="post">
-                <label for="club-name">Club Name</label>
-                <input type="text" id="club-name" name="club_name" placeholder="Enter club name" required>
+            <form action="/update_websiteinfo" method="post">
+                <label for="club-desc1">About Club Description #1</label>
+                <textarea id="club-desc1" name="club_desc1" rows="2" placeholder="Enter first club description" required></textarea>
+
+                <label for="club-desc2">About Club Description #2</label>
+                <textarea id="club-desc2" name="club_desc2" rows="2" placeholder="Enter second club description" required></textarea>
+
+                <label for="club-history">Club History</label>
+                <textarea id="club-history" name="club_history" rows="2" placeholder="Enter club history" required></textarea>
+
+                <label for="club-activities">Club Activities</label>
+                <textarea id="club-activities" name="club_activities" rows="2" placeholder="Enter club activities" required></textarea>
+
+                <label for="join-info">Join Club Information</label>
+                <textarea id="join-info" name="join_info" rows="2" placeholder="Enter information on how to join the club" required></textarea>
 
                 <label for="contact-email">Contact Email</label>
-                <input type="email" id="contact-email" name="contact_email" placeholder="Enter contact email" required>
+                <textarea id="contact-email" name="contact_email" rows="2" placeholder="Enter the email for the club" required></textarea>
 
-                <label for="contact-phone">Contact Phone Number</label>
-                <input type="tel" id="contact-phone" name="contact_phone" placeholder="Enter contact phone number" required>
-
-                <label for="mission-statement">Mission Statement</label>
-                <textarea id="mission-statement" name="mission_statement" rows="4" placeholder="Enter mission statement" required></textarea>
-
-                <label for="address">Club Address</label>
-                <textarea id="address" name="address" rows="2" placeholder="Enter club address" required></textarea>
+                <label for="contact-address">Contact Address</label>
+                <textarea id="contact-address" name="contact_address" rows="2" placeholder="Enter address for the club" required></textarea>
 
                 <button type="submit" class="submit-button">Submit</button>
             </form>
@@ -127,6 +157,36 @@
 
     <!-- JavaScript for toggling the colorblind image -->
     <script>
+        // Fetch data from the server and populate the aboutus page
+        async function fetchModifyWebsiteData() {
+            try {
+                const response = await fetch('/api/get_websiteinfo');
+                const data = await response.json();
+                data.forEach(item => {
+                    if (item.name === "aboutClub1") {
+                        document.getElementById('club-desc1').textContent = item.desc;
+                    } else if (item.name === "aboutClub2") {
+                        document.getElementById('club-desc2').textContent = item.desc;
+                    } else if (item.name === "clubHistory") {
+                        document.getElementById('club-history').textContent = item.desc;
+                    } else if (item.name === "clubActivities") {
+                        document.getElementById('club-activities').textContent = item.desc;
+                    } else if (item.name === "joinClub") {
+                        document.getElementById('join-info').textContent = item.desc;
+                    } else if (item.name === "contact_address") {
+                        document.getElementById('contact-address').textContent = item.desc;
+                    } else if (item.name === "contact_email") {
+                        document.getElementById('contact-email').textContent = item.desc;
+                    }
+                });
+            } catch (error) {
+                console.error('Error fetching website information data:', error);
+            }
+        }
+
+        // Call the fetch function on load
+        window.addEventListener('load', fetchModifyWebsiteData);
+
         const colorblindButton = document.getElementById('colorblind-button');
 
         // Function to update the image source from localStorage

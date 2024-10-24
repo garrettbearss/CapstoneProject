@@ -9,9 +9,14 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+        }
+        *, *::before, *::after {
+            box-sizing: inherit;
         }
         .navbar {
             display: flex;
+            flex-wrap: wrap;
             align-items: center;
             background-color: #333;
             padding: 10px;
@@ -26,6 +31,7 @@
             text-align: center;
             text-decoration: none;
             font-size: 17px;
+            white-space: nowrap;
         }
         .navbar a:hover {
             background-color: #ddd;
@@ -34,7 +40,7 @@
         .navbar .colorblind-img {
             height: 45px;
             width: 45px;
-            margin-left: 15px;
+            margin-left: auto;
             cursor: pointer;
         }
         .content {
@@ -43,17 +49,19 @@
         }
         .content h1 {
             color: #333;
+            font-size: 2em;
         }
         .content p {
             color: #555;
-            font-size: 18px;
+            font-size: 1.2em;
         }
         .inventory-form {
-            margin: 20px auto;
-            max-width: 600px;
+            margin: 0 auto;
+            max-width: 90%;
             padding: 20px;
             border: 2px solid #ccc;
             border-radius: 10px;
+            background-color: #f9f9f9;
         }
         .inventory-form label {
             display: block;
@@ -73,13 +81,29 @@
             background-color: #002664;
             color: white;
             border: none;
-            padding: 10px 20px;
+            padding: 15px;
             font-size: 18px;
             cursor: pointer;
             border-radius: 5px;
+            width: 100%;
         }
         .submit-button:hover {
             background-color: #eaab00;
+        }
+
+        @media (min-width: 768px) {
+            .navbar img {
+                height: 70px;
+            }
+            .content h1 {
+                font-size: 2.5em;
+            }
+            .content p {
+                font-size: 1.5em;
+            }
+            .inventory-form {
+                max-width: 600px;
+            }
         }
     </style>
 </head>

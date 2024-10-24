@@ -9,12 +9,17 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+        }
+        *, *::before, *::after {
+            box-sizing: inherit;
         }
         .navbar {
             display: flex;
             align-items: center;
             background-color: #333;
             padding: 10px;
+            flex-wrap: wrap;
         }
         .navbar img {
             height: 70px;
@@ -26,6 +31,7 @@
             text-align: center;
             text-decoration: none;
             font-size: 17px;
+            white-space: nowrap;
         }
         .navbar a:hover {
             background-color: #ddd;
@@ -34,7 +40,7 @@
         .navbar .colorblind-img {
             height: 45px;
             width: 45px;
-            margin-left: 15px;
+            margin-left: auto;
             cursor: pointer;
         }
         .content {
@@ -43,19 +49,18 @@
         }
         .content h1 {
             color: #333;
+            font-size: 2.5em;
         }
         .content p {
             color: #555;
-            font-size: 18px;
+            font-size: 1.2em;
         }
-        /* Flexbox container for product display */
         .product-container {
             display: flex;
-            justify-content: space-around;
+            justify-content: center;
             flex-wrap: wrap;
             margin-top: 40px;
         }
-        /* Styling for individual product display */
         .product-display {
             display: flex;
             flex-direction: column;
@@ -64,10 +69,13 @@
             border: 2px solid #ccc;
             border-radius: 10px;
             max-width: 300px;
-            margin: 20px;
+            width: 100%;
+            margin: 0 10px;
+            box-sizing: border-box;
         }
         .product-display img {
-            width: 250px;
+            width: 100%;
+            max-width: 250px;
             height: auto;
             border: 1px solid #ddd;
             border-radius: 10px;
@@ -76,6 +84,11 @@
         .product-description {
             font-size: 18px;
             color: #555;
+            margin-bottom: 15px;
+        }
+        .product-price {
+            font-size: 18px;
+            font-weight: bold;
             margin-bottom: 15px;
         }
         .buy-button {
@@ -89,6 +102,27 @@
         }
         .buy-button:hover {
             background-color: #eaab00;
+        }
+
+        @media (min-width: 768px) {
+            .navbar img {
+                height: 70px;
+            }
+            .content h1 {
+                font-size: 2.5em;
+            }
+            .content p {
+                font-size: 1.5em;
+            }
+            .product-container {
+                justify-content: space-around;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .product-display {
+                max-width: 250px;
+            }
         }
     </style>
 </head>
@@ -125,7 +159,7 @@
             <!-- Product 2 -->
             <div class="product-display">
                 <img src="item1.jpg" alt="item1">
-                <div class="product-description">Insert Item name</div>
+                <div class="product-description">Insert Item Name</div>
                 <div class="product-price">Insert Item Price</div>
                 <button class="buy-button">Add to Cart</button>
             </div>
@@ -183,6 +217,6 @@
         // Update the image based on saved state in localStorage on page load
         window.addEventListener('load', updateColorblindImage);
     </script>
- 
+
 </body>
 </html>

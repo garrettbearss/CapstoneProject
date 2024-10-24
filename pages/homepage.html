@@ -9,12 +9,17 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+        }
+        *, *::before, *::after {
+            box-sizing: inherit;
         }
         .navbar {
             display: flex;
             align-items: center;
             background-color: #333;
             padding: 10px;
+            flex-wrap: wrap;
         }
         .navbar img {
             height: 70px;
@@ -26,6 +31,7 @@
             text-align: center;
             text-decoration: none;
             font-size: 17px;
+            white-space: nowrap;
         }
         .navbar a:hover {
             background-color: #ddd;
@@ -34,7 +40,7 @@
         .navbar .colorblind-img {
             height: 45px;
             width: 45px;
-            margin-left: 15px;
+            margin-left: auto;
             cursor: pointer;
         }
         .content {
@@ -43,18 +49,18 @@
         }
         .content h1 {
             color: #333;
+            font-size: 2.5em;
         }
         .content p {
             color: #555;
-            font-size: 18px;
+            font-size: 1.2em;
         }
-        /* Flexbox container for horizontal display */
         .product-container {
             display: flex;
-            justify-content: space-around;
+            flex-wrap: wrap;
+            justify-content: center;
             margin-top: 40px;
         }
-        /* Styling for individual displays */
         .product-display {
             display: flex;
             flex-direction: column;
@@ -62,17 +68,20 @@
             padding: 20px;
             border: 2px solid #ccc;
             border-radius: 10px;
-            max-width: 350px;
+            margin: 20px;
+            max-width: 300px;
+            flex: 1;
+            min-width: 250px;
         }
         .product-display img {
-            width: 300px;
+            width: 100%;
             height: auto;
             border: 1px solid #ddd;
             border-radius: 10px;
             margin-bottom: 15px;
         }
         .product-description {
-            font-size: 18px;
+            font-size: 1em;
             color: #555;
             margin-bottom: 15px;
         }
@@ -81,12 +90,33 @@
             color: white;
             border: none;
             padding: 10px 20px;
-            font-size: 18px;
+            font-size: 1em;
             cursor: pointer;
             border-radius: 5px;
+            width: 100%;
         }
         .buy-button:hover, .learn-button:hover, .shop-button:hover {
             background-color: #eaab00;
+        }
+
+        @media (max-width: 768px) {
+            .navbar a {
+                font-size: 15px;
+            }
+            .content h1 {
+                font-size: 2em;
+            }
+            .content p {
+                font-size: 1em;
+            }
+        }
+        @media (max-width: 480px) {
+            .navbar a {
+                font-size: 14px;
+            }
+            .content h1 {
+                font-size: 1.5em;
+            }
         }
     </style>
 </head>
@@ -116,7 +146,7 @@
                 <img src="images/KSRLogo_B.png" alt="NASA Robotics Logo">
                 <div class="product-description">Learn more about the Kent State Robotics club below</div>
                 <a href="aboutus.html">
-                <button class="learn-button">Learn More</button>
+                    <button class="learn-button">Learn More</button>
                 </a>
             </div>
 
@@ -125,7 +155,7 @@
                 <img src="NASA_Robotics_Shirt.jpg" alt="NASA Robotics Products">
                 <div class="product-description">Shop exclusive products from the club</div>
                 <a href="products.html">
-                <button class="shop-button">Browse Products</button>
+                    <button class="shop-button">Browse Products</button>
                 </a>
             </div>
 
@@ -134,7 +164,7 @@
                 <img src="NASA_Robotics_Donation.jpg" alt="NASA Robotics Donation">
                 <div class="product-description">Donate to help fund club activities</div>
                 <a href="donate.html">
-                <button class="buy-button">Donate Now</button>
+                    <button class="buy-button">Donate Now</button>
                 </a>
             </div>
         </div>

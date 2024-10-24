@@ -9,12 +9,17 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+        }
+        *, *::before, *::after {
+            box-sizing: inherit;
         }
         .navbar {
             display: flex;
             align-items: center;
             background-color: #333;
             padding: 10px;
+            flex-wrap: wrap;
         }
         .navbar img {
             height: 70px;
@@ -26,6 +31,7 @@
             text-align: center;
             text-decoration: none;
             font-size: 17px;
+            white-space: nowrap;
         }
         .navbar a:hover {
             background-color: #ddd;
@@ -34,7 +40,7 @@
         .navbar .colorblind-img {
             height: 45px;
             width: 45px;
-            margin-left: 15px;
+            margin-left: auto;
             cursor: pointer;
         }
         .content {
@@ -43,12 +49,13 @@
         }
         .content h1 {
             color: #333;
+            font-size: 2.5em;
         }
         .content p {
             color: #555;
-            font-size: 18px;
+            font-size: 1.2em;
+            margin-bottom: 30px;
         }
-        /* Styling for the login form */
         .login-container {
             display: flex;
             justify-content: center;
@@ -59,8 +66,8 @@
             border-radius: 10px;
             padding: 30px;
             width: 300px;
-            text-align: center;
             background-color: #f9f9f9;
+            text-align: center;
         }
         .login-form input {
             width: 100%;
@@ -77,6 +84,7 @@
             font-size: 18px;
             cursor: pointer;
             border-radius: 5px;
+            width: 100%;
         }
         .login-button:hover {
             background-color: #eaab00;
@@ -84,6 +92,34 @@
         .error-message {
             color: red;
             margin-bottom: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .content h1 {
+                font-size: 2em;
+            }
+            .content p {
+                font-size: 1em;
+            }
+            .login-container {
+                padding: 0 10px;
+            }
+            .login-form {
+                width: 100%;
+                max-width: 400px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .navbar a {
+                font-size: 14px;
+            }
+            .content h1 {
+                font-size: 1.7em;
+            }
+            .content p {
+                font-size: 0.9em;
+            }
         }
     </style>
 </head>
