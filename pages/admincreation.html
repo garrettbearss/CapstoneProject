@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kent State Robotics Club - Admin User Creation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        *, *::before, *::after {
+            box-sizing: inherit;
+        }
+        .navbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            background-color: #333;
+            padding: 10px;
+        }
+        .navbar img {
+            height: 70px;
+            margin-right: 15px;
+        }
+        .navbar a {
+            color: white;
+            padding: 14px 20px;
+            text-align: center;
+            text-decoration: none;
+            font-size: 17px;
+            white-space: nowrap;
+        }
+        .navbar a:hover {
+            background-color: #ddd;
+            color: black;
+        }
+        .navbar .colorblind-img {
+            height: 45px;
+            width: 45px;
+            margin-left: auto;
+            cursor: pointer;
+        }
+        .content {
+            padding: 20px;
+            text-align: center;
+        }
+        .content h1 {
+            color: #333;
+            font-size: 2em;
+        }
+        .content p {
+            color: #555;
+            font-size: 1.2em;
+        }
+        .admin-form {
+            margin: 0 auto;
+            max-width: 90%;
+            padding: 20px;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+        }
+        .admin-form label {
+            display: block;
+            margin: 10px 0 5px;
+            font-size: 18px;
+            color: #333;
+        }
+        .admin-form input {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .submit-button {
+            background-color: #002664;
+            color: white;
+            border: none;
+            padding: 15px;
+            font-size: 18px;
+            cursor: pointer;
+            border-radius: 5px;
+            width: 100%;
+        }
+        .submit-button:hover {
+            background-color: #eaab00;
+        }
+        @media (min-width: 768px) {
+            .navbar img {
+                height: 70px;
+            }
+            .content h1 {
+                font-size: 2.5em;
+            }
+            .content p {
+                font-size: 1.5em;
+            }
+            .admin-form {
+                max-width: 600px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation Menu Bar -->
+    <div class="navbar">
+        <img src="images/KSRLogo_C.png" alt="Kent State Robotics Logo">
+        <a href="homepage.html">Homepage</a>
+        <a href="products.html">Products</a>
+        <a href="donate.html">Donate</a>
+        <a href="aboutus.html">About Us</a>
+        <a href="adminlogin.html">Admin Login</a>
+        <a href="shoppingcart.html">Shopping Cart</a>
+        <img src="images/Colorblind_Off.png" alt="Color Blind Off" class="colorblind-img" id="colorblind-button">
+    </div>
+
+    <!-- Main Content Section -->
+    <div class="content">
+        <h1>Admin User Creation</h1>
+        <p>Create a new admin account by entering a username, password, and account expiration date below.</p>
+
+        <!-- Admin User Creation Form -->
+        <div class="admin-form">
+            <form id="adminForm" action="/create_admin" method="post">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" placeholder="Enter username" required>
+
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Enter password" required>
+
+                <label for="confirmPassword">Confirm Password</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Re-enter password" required>
+
+                <label for="expiration">Account Expiration Date</label>
+                <input type="date" id="expiration" name="expiration" required>
+
+                <button type="submit" class="submit-button">Create Admin</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- JavaScript for Password Validation and Colorblind Image Toggle -->
+    <script>
+        async function fetchUserName() {
+            try {
+                const response = await fetch('/current_user');
+                if (response.ok) {
+                    const data = await response.json();
+                    if(data && data.username){
+                        document.getElementById('user-name').innerText = data.username;
+                    } else{
+                        window.location.href = 'adminlogin.html'
+                    }
+                } else {
+                    console.error("Failed to fetch user's name");
+                    window.location.href = 'adminlogin.html'
+                }
+            } catch (error) {
+                console.error("Error fetching user's name:", error);
+                window.location.href = 'adminlogin.html'
+            }
+        }
+        const colorblindButton = document.getElementById('colorblind-button');
+
+        function updateColorblindImage() {
+            const savedState = localStorage.getItem('colorblindMode');
+            if (savedState) {
+                colorblindButton.setAttribute('src', savedState); 
+            }
+        }
+
+        colorblindButton.addEventListener('click', function() {
+            const currentSrc = colorblindButton.getAttribute('src');
+            let newSrc = currentSrc === 'images/Colorblind_Off.png' ? 'images/Colorblind_On.png' : 'images/Colorblind_Off.png';
+            colorblindButton.setAttribute('src', newSrc);
+            localStorage.setItem('colorblindMode', newSrc);
+        });
+
+        window.addEventListener('load', updateColorblindImage);
+        window.addEventListener('load', fetchUserName());
+
+        // Clear password fields on page load
+        window.addEventListener('load', function() {
+            document.getElementById('password').value = '';
+            document.getElementById('confirmPassword').value = '';
+        });
+
+        // Handle form submission
+        document.getElementById('adminForm').addEventListener('submit', function(event) {
+            // Validate that passwords match
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (password !== confirmPassword) {
+                alert("Passwords do not match!");
+                event.preventDefault(); // Prevent form submission
+            }
+        });
+    </script>
+
+</body>
+</html>
