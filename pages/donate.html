@@ -212,7 +212,7 @@
         // Logout request on page unload
         window.addEventListener("load", async function(event) {
             // Call the logout function
-            await fetch("/api/logout", { method: "POST" });
+            await fetch("/logout", { method: "POST" });
         });
     </script>
 
