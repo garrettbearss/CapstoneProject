@@ -16,7 +16,7 @@ mod api {
     use rocket::http::Status;
     use sha2::{Sha256, Digest};
     use uuid::Uuid;
-    use chrono::{Duration, NaiveDateTime, Utc};
+    use chrono::{Duration, NaiveDate, NaiveDateTime, Utc};
     use rocket::http::CookieJar;
     use rocket::http::Cookie;
     use rocket::fs::NamedFile;
@@ -87,9 +87,14 @@ mod api {
         (token, expiration) // Return both the token and its expiration time
     }
 
+
     #[allow(private_interfaces)]
     #[post("/login", data = "<login_form>")]
-    pub async fn login(login_form: Form<LoginCredentials>, mut db: Connection<RoboDatabase>, jar: &CookieJar<'_>) -> Result<Redirect, String> {
+    pub async fn login(
+        login_form: Form<LoginCredentials>,
+        mut db: Connection<RoboDatabase>,
+        jar: &CookieJar<'_>
+    ) -> Result<Redirect, String> {
         // Fetch the admin from the database using the provided username
         let row = rocket_db_pools::sqlx::query("SELECT * FROM admins WHERE username = ?")
             .bind(&login_form.username)
@@ -98,13 +103,34 @@ mod api {
             .map_err(|e| e.to_string())?;
 
         let hashed_password = row.try_get::<String, _>("password").map_err(|e| e.to_string())?;
+        let expiration_str: String = row.try_get("expiration").map_err(|e| e.to_string())?;
+
+        // Parse the expiration date from the string in "YYYY-MM-DD" format
+        let expiration_date = NaiveDate::parse_from_str(&expiration_str, "%Y-%m-%d")
+            .map_err(|e| e.to_string())?;
+        
+        // Get the current UTC date
+        let now = Utc::now().naive_utc().date(); 
+
+        // Check if the admin's expiration date has passed
+        if now > expiration_date {
+            // Remove the expired admin account from the database
+            rocket_db_pools::sqlx::query("DELETE FROM admins WHERE username = ?")
+                .bind(&login_form.username)
+                .execute(&mut **db)
+                .await
+                .map_err(|e| e.to_string())?;
+            
+            return Err("Admin account has expired and has been removed.".into());
+        }
+
         // Check password
         if hash_password(&login_form.password) == hashed_password {
             // Generate a new token and its expiration
             let (token, expiration) = generate_token_and_expiration();
-
+            let expiration_string = expiration.to_rfc3339();
+            
             // Update the user's token and its expiration in the database
-            let expiration_string = expiration.to_rfc3339(); // Convert to string
             rocket_db_pools::sqlx::query("UPDATE admins SET token = ?, token_expiration = ? WHERE username = ?")
                 .bind(&token)
                 .bind(expiration_string)
@@ -165,7 +191,7 @@ mod api {
     }
 
 
-    #[post("/api/logout")]
+    #[post("/logout")]
     pub async fn logout(jar: &CookieJar<'_>, mut db: Connection<RoboDatabase>){
         // Get the token from the cookie
         if let Some(token_cookie) = jar.get("token") {
