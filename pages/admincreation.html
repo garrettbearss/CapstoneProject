@@ -127,7 +127,7 @@
 
         <!-- Admin User Creation Form -->
         <div class="admin-form">
-            <form id="adminForm" action="/create_admin" method="post">
+            <form id="adminForm" action="/api/create_admin" method="post">
                 <label for="username">Username</label>
                 <input type="text" id="username" name="username" placeholder="Enter username" required>
 
@@ -149,7 +149,7 @@
     <script>
         async function fetchUserName() {
             try {
-                const response = await fetch('/current_user');
+                const response = await fetch('/api/current_user');
                 if (response.ok) {
                     const data = await response.json();
                     if(data && data.username){
@@ -163,7 +163,11 @@
                 }
             } catch (error) {
                 console.error("Error fetching user's name:", error);
-                window.location.href = 'adminlogin.html'
+                if (retryCount < 3) { // Retry a few times in case of temporary errors
+                    setTimeout(() => fetchUserName(retryCount + 1), 1000); // Retry after 1 second
+                } else {
+                    window.location.href = 'adminlogin.html';
+                }
             }
         }
         const colorblindButton = document.getElementById('colorblind-button');
@@ -182,8 +186,10 @@
             localStorage.setItem('colorblindMode', newSrc);
         });
 
-        window.addEventListener('load', updateColorblindImage);
-        window.addEventListener('load', fetchUserName());
+        window.addEventListener('load', () => {
+            updateColorblindImage();
+            fetchUserName();
+        });
 
         // Clear password fields on page load
         window.addEventListener('load', function() {
