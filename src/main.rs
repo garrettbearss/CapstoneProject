@@ -411,6 +411,7 @@ mod api {
         }
         Ok(Json(prod_vars_ret))
     }
+
     #[allow(private_interfaces)]
     #[get("/get_websiteinfo")]
     pub(super) async fn get_websiteinfo(mut db: Connection<RoboDatabase>) -> Json<Vec<Product>> {
@@ -485,5 +486,6 @@ async fn rocket() -> _ {
             api::login, 
             api::logout, 
             api::admin_menu, 
-            api::current_user])
+            api::current_user,
+            api::get_product_variants])
 }
