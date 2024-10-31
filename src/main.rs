@@ -20,6 +20,7 @@ mod api {
     use rocket::http::CookieJar;
     use rocket::http::Cookie;
     use rocket::fs::NamedFile;
+    use rand::{distributions::Alphanumeric, Rng};
 
     #[derive(Database)]
     #[database("db")]
@@ -83,18 +84,14 @@ mod api {
 
     fn generate_token_and_expiration() -> (String, chrono::DateTime<Utc>) {
         let token = Uuid::new_v4().to_string(); // Generate a unique token
-        let expiration = Utc::now() + Duration::minutes(5); // Set expiration time to 30 minutes from now
+        let expiration = Utc::now() + Duration::minutes(5); // Set expiration time to 5 minutes from now
         (token, expiration) // Return both the token and its expiration time
     }
 
 
     #[allow(private_interfaces)]
     #[post("/login", data = "<login_form>")]
-    pub async fn login(
-        login_form: Form<LoginCredentials>,
-        mut db: Connection<RoboDatabase>,
-        jar: &CookieJar<'_>
-    ) -> Result<Redirect, String> {
+    pub async fn login(login_form: Form<LoginCredentials>,mut db: Connection<RoboDatabase>,jar: &CookieJar<'_>) -> Result<Redirect, String> {
         // Fetch the admin from the database using the provided username
         let row = rocket_db_pools::sqlx::query("SELECT * FROM admins WHERE username = ?")
             .bind(&login_form.username)
@@ -103,6 +100,7 @@ mod api {
             .map_err(|e| e.to_string())?;
 
         let hashed_password = row.try_get::<String, _>("password").map_err(|e| e.to_string())?;
+        let salt: String = row.try_get("salt").map_err(|e| e.to_string())?; // Fetch the salt from the database
         let expiration_str: String = row.try_get("expiration").map_err(|e| e.to_string())?;
 
         // Parse the expiration date from the string in "YYYY-MM-DD" format
@@ -124,8 +122,12 @@ mod api {
             return Err("Admin account has expired and has been removed.".into());
         }
 
-        // Check password
-        if hash_password(&login_form.password) == hashed_password {
+        // Combine the input password with the salt and hash it
+        let salted_input_password = format!("{}{}", login_form.password, salt);
+        let hashed_input_password = hash_password(&salted_input_password);
+
+        // Check the hashed input password against the stored hashed password
+        if hashed_input_password == hashed_password {
             // Generate a new token and its expiration
             let (token, expiration) = generate_token_and_expiration();
             let expiration_string = expiration.to_rfc3339();
@@ -163,13 +165,13 @@ mod api {
                 // Fetch `token_expiration` as a `String` from the row
                 let token_expiration_str: String = match row.try_get("token_expiration") {
                     Ok(expiration) => expiration,
-                    Err(_) => return Err(Redirect::to("/api/login")), // Redirect on error
+                    Err(_) => return Err(Redirect::to("/login")), // Redirect on error
                 };
 
                 // Parse the token expiration string into NaiveDateTime
                 let token_expires = match NaiveDateTime::parse_from_str(&token_expiration_str, "%Y-%m-%d %H:%M:%S") {
                     Ok(parsed_date) => parsed_date,
-                    Err(_) => return Err(Redirect::to("/api/login")), // Redirect if parsing fails
+                    Err(_) => return Err(Redirect::to("/login")), // Redirect if parsing fails
                 };
 
                 let now = Utc::now().naive_utc(); // Get the current time in naive UTC
@@ -187,7 +189,7 @@ mod api {
                 }
             }
         }
-        Err(Redirect::to("/api/login"))
+        Err(Redirect::to("api/login"))
     }
 
 
@@ -215,16 +217,24 @@ mod api {
 
     #[allow(private_interfaces)]
     #[post("/create_admin", data = "<admin_form>")]
-    pub async fn create_admin(admin_form: Form<CreateAdmin>, mut db: Connection<RoboDatabase>) -> Result<Redirect, Status> {
+    pub async fn create_admin(admin_form: Form<CreateAdmin>,mut db: Connection<RoboDatabase>) -> Result<Redirect, Status> {
+        // Generate a random salt
+        let salt: String = rand::thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(16) // You can adjust the length of the salt as needed
+            .map(char::from)
+            .collect();
 
-        // Hash the password using SHA-256
-        let hashed_password = hash_password(&admin_form.password);
+        // Concatenate the salt with the password, then hash the combined string
+        let salted_password = format!("{}{}", admin_form.password, salt);
+        let hashed_password = hash_password(&salted_password);
 
         // SQL query to insert the new admin into the database
         let result = rocket_db_pools::sqlx::query(
-            "INSERT INTO admins (username, password, expiration) VALUES (?, ?, ?)"
+            "INSERT INTO admins (username, salt, password, expiration) VALUES (?, ?, ?, ?)"
         )
         .bind(&admin_form.username)
+        .bind(salt)
         .bind(hashed_password)
         .bind(&admin_form.expiration)
         .execute(&mut **db)
@@ -232,7 +242,7 @@ mod api {
 
         // Handle the result of the database operation
         match result {
-            Ok(_) => Ok(Redirect::to("adminconfirm.html")), // Redirect to confirmation page
+            Ok(_) => Ok(Redirect::to("/adminconfirm.html")), // Redirect to confirmation page
             Err(_) => Err(Status::InternalServerError),
         }
     }
@@ -325,10 +335,11 @@ mod api {
 
     // Handle the result of the database operation
     match result {
-        Ok(_) => Ok(Redirect::to("adminconfirm.html")),
+        Ok(_) => Ok(Redirect::to("/adminconfirm.html")),
         Err(err) => Err(format!("Database error: {err}")),
     }
-    }
+}
+
 }
 
 // Route to set homepage.html on run
@@ -341,7 +352,16 @@ async fn homepage() -> Option<NamedFile> {
 async fn rocket() -> _ {
     rocket::build()
         .attach(api::RoboDatabase::init())
-        .mount("/", routes![homepage, api::update_websiteinfo, api::create_admin, api::login, api::logout, api::current_user])
+        .mount("/", routes![homepage])
         .mount("/", FileServer::from("./pages"))
-        .mount("/api", routes![api::get_items, api::add_item, api::get_websiteinfo, api::update_websiteinfo, api::create_admin, api::login, api::logout, api::admin_menu, api::current_user])
+        .mount("/api", routes![
+            api::get_items, 
+            api::add_item, 
+            api::get_websiteinfo, 
+            api::update_websiteinfo, 
+            api::create_admin, 
+            api::login, 
+            api::logout, 
+            api::admin_menu, 
+            api::current_user])
 }
