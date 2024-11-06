@@ -244,6 +244,12 @@
 
         // Update the image based on saved state in localStorage on page load
         window.addEventListener('load', updateColorblindImage);
+
+        // Logout request on page unload
+        window.addEventListener("load", async function(event) {
+            // Call the logout function
+            await fetch("/api/logout", { method: "POST" });
+        });
     </script>
 
 </body>

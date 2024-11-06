@@ -155,6 +155,29 @@
 
     <!-- JavaScript for toggling the colorblind image -->
     <script>
+        async function fetchUserName() {
+            try {
+                const response = await fetch('/api/current_user');
+                if (response.ok) {
+                    const data = await response.json();
+                    if(data && data.username){
+                        document.getElementById('user-name').innerText = data.username;
+                    } else{
+                        window.location.href = 'adminlogin.html'
+                    }
+                } else {
+                    console.error("Failed to fetch user's name");
+                    window.location.href = 'adminlogin.html'
+                }
+            } catch (error) {
+                console.error("Error fetching user's name:", error);
+                if (retryCount < 3) { // Retry a few times in case of temporary errors
+                    setTimeout(() => fetchUserName(retryCount + 1), 1000); // Retry after 1 second
+                } else {
+                    window.location.href = 'adminlogin.html';
+                }
+            }
+        }
         const colorblindButton = document.getElementById('colorblind-button');
 
         // Function to update the image source from localStorage
@@ -186,6 +209,7 @@
 
         // Update the image based on saved state in localStorage on page load
         window.addEventListener('load', updateColorblindImage);
+        window.addEventListener('load', fetchUserName());
     </script>
  
 </body>
