@@ -81,7 +81,29 @@
             border-radius: 10px;
             margin-bottom: 15px;
         }
-        .donate-button {
+        .donation-description {
+            font-size: 1.1em;
+            color: #555;
+            margin-bottom: 20px;
+        }
+        .donation-form {
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap; 
+            justify-content: center;
+        }
+        .donation-form input {
+            padding: 10px;
+            margin-right: 10px;
+            font-size: 16px;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            flex: 1; 
+            min-width: 150px; 
+        }
+        .donation-form button {
             background-color: #002664;
             color: white;
             border: none;
@@ -89,9 +111,10 @@
             font-size: 18px;
             cursor: pointer;
             border-radius: 5px;
-            margin-top: 20px;
+            margin-top: 10px;
+            flex: 0 1 150px; 
         }
-        .donate-button:hover {
+        .donation-form button:hover {
             background-color: #eaab00;
         }
 
@@ -136,15 +159,18 @@
         <h1>Support the Kent State Robotics Club!</h1>
         <p>Your donations help fund our club activities. We appreciate any amount you can give!</p>
 
-        <!-- Donation Container -->
+        <!-- Donation Form Container -->
         <div class="donation-container">
             <!-- Donation Display -->
             <div class="donation-display">
-                <img src="images/KSR_Donation_B.jpg" alt="KSR Donation">
+                <img src="NASA_Robotics_Donation.jpg" alt="NASA Robotics Donation">
                 <div class="donation-description">Help fund us today by donating to the Kent State Robotics Club.</div>
-                
-                <!-- Redirect Donation Button -->
-                <button class="donate-button" onclick="window.location.href='https://buy.stripe.com/test_dR64iBcvUeQpdos144'">Donate Now</button>
+
+                <!-- Donation Form -->
+                <div class="donation-form">
+                    <input type="number" placeholder="Enter amount ($)" min="1" required>
+                    <button class="donate-button">Donate Now</button>
+                </div>
             </div>
         </div>
     </div>
@@ -153,23 +179,39 @@
     <script>
         const colorblindButton = document.getElementById('colorblind-button');
 
+        // Function to update the image source from localStorage
         function updateColorblindImage() {
             const savedState = localStorage.getItem('colorblindMode');
             if (savedState) {
-                colorblindButton.setAttribute('src', savedState);
+                colorblindButton.setAttribute('src', savedState);  // Set to saved image source
             }
         }
 
+        // Add a click event listener to toggle the image source
         colorblindButton.addEventListener('click', function() {
             const currentSrc = colorblindButton.getAttribute('src');
-            const newSrc = currentSrc === 'images/Colorblind_Off.png' ? 'images/Colorblind_On.png' : 'images/Colorblind_Off.png';
+            let newSrc;
+
+            // Toggle between 'Colorblind_Off.png' and 'Colorblind_On.png'
+            if (currentSrc === 'images/Colorblind_Off.png') {
+                newSrc = 'images/Colorblind_On.png';
+            } else {
+                newSrc = 'images/Colorblind_Off.png';
+            }
+
+            // Set the new image source
             colorblindButton.setAttribute('src', newSrc);
+
+            // Store the new state in localStorage
             localStorage.setItem('colorblindMode', newSrc);
         });
 
+        // Update the image based on saved state in localStorage on page load
         window.addEventListener('load', updateColorblindImage);
 
-        window.addEventListener("load", async function() {
+        // Logout request on page unload
+        window.addEventListener("load", async function(event) {
+            // Call the logout function
             await fetch("/api/logout", { method: "POST" });
         });
     </script>
