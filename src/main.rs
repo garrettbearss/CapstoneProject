@@ -6,10 +6,15 @@ extern crate rocket;
 
 mod api {
 
-    use std::path::PathBuf;
-    use std::str::FromStr;
+    use chrono::{Duration, NaiveDate, NaiveDateTime, Utc};
+    use rand::{distributions::Alphanumeric, Rng};
+    use rocket::data::FromData;
     use rocket::form::Form;
+    use rocket::fs::NamedFile;
     use rocket::futures::TryFutureExt;
+    use rocket::http::Cookie;
+    use rocket::http::CookieJar;
+    use rocket::http::Status;
     use rocket::response::Redirect;
     use rocket::{futures::StreamExt, serde::json::Json};
     use rocket_db_pools::sqlx::sqlite::SqliteRow;
@@ -18,14 +23,10 @@ mod api {
         Connection, Database,
     };
     use serde::{Deserialize, Serialize};
-    use rocket::http::Status;
-    use sha2::{Sha256, Digest};
+    use sha2::{Digest, Sha256};
+    use std::path::PathBuf;
+    use std::str::FromStr;
     use uuid::Uuid;
-    use chrono::{Duration, NaiveDate, NaiveDateTime, Utc};
-    use rocket::http::CookieJar;
-    use rocket::http::Cookie;
-    use rocket::fs::NamedFile;
-    use rand::{distributions::Alphanumeric, Rng};
 
     #[derive(Database)]
     #[database("db")]
@@ -84,11 +85,29 @@ mod api {
             }
         }
     }
+    impl ToString for VarTag {
+        fn to_string(&self) -> String {
+            match self {
+                VarTag::Size(s) => format!("size{s}"),
+                VarTag::Color(c) => format!("color{c}"),
+                VarTag::Fitted(f) => {
+                    if *f {
+                        format!("fitted")
+                    } else {
+                        format!("snap")
+                    }
+                }
+            }
+        }
+    }
     #[derive(Serialize, Deserialize)]
     struct ProductVariant {
         quantity: Option<u32>,
         tags: Vec<VarTag>,
+        product: u32,
+        varid: u32,
     }
+
     impl TryFrom<SqliteRow> for ProductVariant {
         type Error = String;
 
@@ -103,6 +122,12 @@ mod api {
                     .split_whitespace()
                     .filter_map(|s| s.parse().ok())
                     .collect(),
+                product: value
+                    .try_get("product_id")
+                    .map_err(|e| format!("Could not get `product_id` {e}"))?,
+                varid: value
+                    .try_get("var_id")
+                    .map_err(|e| format!("Could not get `var_id` {e}"))?,
                 // name: value
                 //     .try_get("name")
                 //     .map_err(|e| format!("Could not get `name` {e}"))?,
@@ -135,22 +160,26 @@ mod api {
     }
 
     #[derive(Serialize)]
-    struct CurrentUserResponse{
-        username: String
+    struct CurrentUserResponse {
+        username: String,
     }
 
     #[allow(private_interfaces)]
     #[get("/current_user")]
-    pub async fn current_user(jar: &CookieJar<'_>, mut db: Connection<RoboDatabase>) -> Option<Json<CurrentUserResponse>> {
+    pub async fn current_user(
+        jar: &CookieJar<'_>,
+        mut db: Connection<RoboDatabase>,
+    ) -> Option<Json<CurrentUserResponse>> {
         // Get the token from the cookie jar
         if let Some(token_cookie) = jar.get("token") {
             let token_value = token_cookie.value();
 
             // Query the database to get the username for the token
-            if let Ok(row) = rocket_db_pools::sqlx::query("SELECT username FROM admins WHERE token = ?")
-                .bind(token_value)
-                .fetch_one(&mut **db)
-                .await
+            if let Ok(row) =
+                rocket_db_pools::sqlx::query("SELECT username FROM admins WHERE token = ?")
+                    .bind(token_value)
+                    .fetch_one(&mut **db)
+                    .await
             {
                 if let Ok(username) = row.try_get::<String, _>("username") {
                     return Some(Json(CurrentUserResponse { username }));
@@ -166,10 +195,13 @@ mod api {
         (token, expiration) // Return both the token and its expiration time
     }
 
-
     #[allow(private_interfaces)]
     #[post("/login", data = "<login_form>")]
-    pub async fn login(login_form: Form<LoginCredentials>,mut db: Connection<RoboDatabase>,jar: &CookieJar<'_>) -> Result<Redirect, String> {
+    pub async fn login(
+        login_form: Form<LoginCredentials>,
+        mut db: Connection<RoboDatabase>,
+        jar: &CookieJar<'_>,
+    ) -> Result<Redirect, String> {
         // Fetch the admin from the database using the provided username
         let row = rocket_db_pools::sqlx::query("SELECT * FROM admins WHERE username = ?")
             .bind(&login_form.username)
@@ -177,16 +209,18 @@ mod api {
             .await
             .map_err(|e| e.to_string())?;
 
-        let hashed_password = row.try_get::<String, _>("password").map_err(|e| e.to_string())?;
+        let hashed_password = row
+            .try_get::<String, _>("password")
+            .map_err(|e| e.to_string())?;
         let salt: String = row.try_get("salt").map_err(|e| e.to_string())?; // Fetch the salt from the database
         let expiration_str: String = row.try_get("expiration").map_err(|e| e.to_string())?;
 
         // Parse the expiration date from the string in "YYYY-MM-DD" format
-        let expiration_date = NaiveDate::parse_from_str(&expiration_str, "%Y-%m-%d")
-            .map_err(|e| e.to_string())?;
-        
+        let expiration_date =
+            NaiveDate::parse_from_str(&expiration_str, "%Y-%m-%d").map_err(|e| e.to_string())?;
+
         // Get the current UTC date
-        let now = Utc::now().naive_utc().date(); 
+        let now = Utc::now().naive_utc().date();
 
         // Check if the admin's expiration date has passed
         if now > expiration_date {
@@ -196,7 +230,7 @@ mod api {
                 .execute(&mut **db)
                 .await
                 .map_err(|e| e.to_string())?;
-            
+
             return Err("Admin account has expired and has been removed.".into());
         }
 
@@ -209,15 +243,17 @@ mod api {
             // Generate a new token and its expiration
             let (token, expiration) = generate_token_and_expiration();
             let expiration_string = expiration.to_rfc3339();
-            
+
             // Update the user's token and its expiration in the database
-            rocket_db_pools::sqlx::query("UPDATE admins SET token = ?, token_expiration = ? WHERE username = ?")
-                .bind(&token)
-                .bind(expiration_string)
-                .bind(&login_form.username)
-                .execute(&mut **db)
-                .await
-                .map_err(|e| e.to_string())?;
+            rocket_db_pools::sqlx::query(
+                "UPDATE admins SET token = ?, token_expiration = ? WHERE username = ?",
+            )
+            .bind(&token)
+            .bind(expiration_string)
+            .bind(&login_form.username)
+            .execute(&mut **db)
+            .await
+            .map_err(|e| e.to_string())?;
 
             // Store the token in a cookie
             jar.add(Cookie::new("token", token));
@@ -227,12 +263,19 @@ mod api {
         }
     }
 
+    fn validate_user(token: &str) -> Option<String> {
+        Some("test".into())
+    }
 
     #[get("/adminmenu.html")]
-    pub async fn admin_menu(jar: &CookieJar<'_>, mut db: Connection<RoboDatabase>) -> Result<NamedFile, Redirect> {
+    pub async fn admin_menu(
+        jar: &CookieJar<'_>,
+        mut db: Connection<RoboDatabase>,
+    ) -> Result<NamedFile, Redirect> {
         let token = jar.get("token").map(|c| c.value().to_string());
 
-        if let Some(token_value) = token.clone() { // Clone `token_value` here so we can reuse it later
+        if let Some(token_value) = token {
+            // Clone `token_value` here so we can reuse it later
             // Validate the token
             let user = rocket_db_pools::sqlx::query("SELECT * FROM admins WHERE token = ?")
                 .bind(&token_value)
@@ -247,32 +290,37 @@ mod api {
                 };
 
                 // Parse the token expiration string into NaiveDateTime
-                let token_expires = match NaiveDateTime::parse_from_str(&token_expiration_str, "%Y-%m-%d %H:%M:%S") {
-                    Ok(parsed_date) => parsed_date,
-                    Err(_) => return Err(Redirect::to("/login")), // Redirect if parsing fails
-                };
+                let token_expires =
+                    match NaiveDateTime::parse_from_str(&token_expiration_str, "%Y-%m-%d %H:%M:%S")
+                    {
+                        Ok(parsed_date) => parsed_date,
+                        Err(_) => return Err(Redirect::to("/login")), // Redirect if parsing fails
+                    };
 
                 let now = Utc::now().naive_utc(); // Get the current time in naive UTC
 
                 // Check if the token has expired
                 if token_expires > now {
-                    return NamedFile::open("./pages/adminmenu.html").await.map_err(|_| Redirect::to("/api/login"));
+                    return NamedFile::open("./pages/adminmenu.html")
+                        .await
+                        .map_err(|_| Redirect::to("/api/login"));
                 } else {
                     // If the token is expired, clear it from the database
-                    rocket_db_pools::sqlx::query("UPDATE admins SET token = NULL, token_expires = NULL WHERE token = ?")
-                        .bind(token_value) // Use the cloned value here
-                        .execute(&mut **db)
-                        .await
-                        .ok();
+                    rocket_db_pools::sqlx::query(
+                        "UPDATE admins SET token = NULL, token_expires = NULL WHERE token = ?",
+                    )
+                    .bind(token_value) // Use the cloned value here
+                    .execute(&mut **db)
+                    .await
+                    .ok();
                 }
             }
         }
         Err(Redirect::to("api/login"))
     }
 
-
     #[post("/logout")]
-    pub async fn logout(jar: &CookieJar<'_>, mut db: Connection<RoboDatabase>){
+    pub async fn logout(jar: &CookieJar<'_>, mut db: Connection<RoboDatabase>) {
         // Get the token from the cookie
         if let Some(token_cookie) = jar.get("token") {
             let token_value = token_cookie.value().to_string();
@@ -281,10 +329,12 @@ mod api {
             jar.remove(Cookie::from("token"));
 
             // Set the token and token_expires fields to NULL for the user in the database
-            let update_result = rocket_db_pools::sqlx::query("UPDATE admins SET token = NULL, token_expiration = NULL WHERE token = ?")
-                .bind(&token_value)
-                .execute(&mut **db)
-                .await;
+            let update_result = rocket_db_pools::sqlx::query(
+                "UPDATE admins SET token = NULL, token_expiration = NULL WHERE token = ?",
+            )
+            .bind(&token_value)
+            .execute(&mut **db)
+            .await;
 
             // Optional: Check if the update succeeded
             if let Err(e) = update_result {
@@ -295,7 +345,10 @@ mod api {
 
     #[allow(private_interfaces)]
     #[post("/create_admin", data = "<admin_form>")]
-    pub async fn create_admin(admin_form: Form<CreateAdmin>,mut db: Connection<RoboDatabase>) -> Result<Redirect, Status> {
+    pub async fn create_admin(
+        admin_form: Form<CreateAdmin>,
+        mut db: Connection<RoboDatabase>,
+    ) -> Result<Redirect, Status> {
         // Generate a random salt
         let salt: String = rand::thread_rng()
             .sample_iter(&Alphanumeric)
@@ -309,7 +362,7 @@ mod api {
 
         // SQL query to insert the new admin into the database
         let result = rocket_db_pools::sqlx::query(
-            "INSERT INTO admins (username, salt, password, expiration) VALUES (?, ?, ?, ?)"
+            "INSERT INTO admins (username, salt, password, expiration) VALUES (?, ?, ?, ?)",
         )
         .bind(&admin_form.username)
         .bind(salt)
@@ -330,7 +383,7 @@ mod api {
         let mut hasher = Sha256::new();
         hasher.update(password);
         let result = hasher.finalize();
-        hex::encode(result)  // Return the hex representation of the hash
+        hex::encode(result) // Return the hex representation of the hash
     }
 
     #[allow(private_interfaces)]
@@ -362,7 +415,12 @@ mod api {
     pub(super) async fn add_item(
         name: &str,
         mut db: Connection<RoboDatabase>,
+        jar: &CookieJar<'_>,
     ) -> Result<&'static str, String> {
+        match validate_user(jar.get("token").map(|x| x.value()).unwrap_or("")) {
+            Some(_) => {}
+            None => return Err("Not logged in".into()),
+        };
         rocket_db_pools::sqlx::query(
             "insert into products (name, price, quantity) values ($1, $2 ,$3)",
         )
@@ -413,6 +471,66 @@ mod api {
     }
 
     #[allow(private_interfaces)]
+    #[post("/modifyvariant", data = "<variant>")]
+    pub(super) async fn mod_product_variant(
+        variant: Json<ProductVariant>,
+        mut db: Connection<RoboDatabase>,
+        jar: &CookieJar<'_>,
+    ) -> Result<&'static str, String> {
+        match validate_user(jar.get("token").map(|x| x.value()).unwrap_or("")) {
+            Some(_) => {}
+            None => return Err("Not logged in".into()),
+        };
+        rocket_db_pools::sqlx::query(
+            "UPDATE product_variants SET quantity = ?, tag_name = ? WHERE var_id = ?",
+        )
+        .bind(variant.quantity)
+        .bind(
+            variant
+                .tags
+                .iter()
+                .map(|e| e.to_string())
+                .reduce(|x, y| x + " " + &y),
+        )
+        .bind(variant.varid)
+        .execute(&mut **db)
+        .await
+        .map_err(|e| e.to_string())?;
+
+        Ok("ok")
+    }
+
+    #[allow(private_interfaces)]
+    #[post("/addvariant", data = "<variant>")]
+    pub(super) async fn add_product_variant(
+        variant: Json<ProductVariant>,
+        mut db: Connection<RoboDatabase>,
+        jar: &CookieJar<'_>,
+    ) -> Result<&'static str, String> {
+        match validate_user(jar.get("token").map(|x| x.value()).unwrap_or("")) {
+            Some(_) => {}
+            None => return Err("Not logged in".into()),
+        };
+        rocket_db_pools::sqlx::query(
+            "insert into product_variants (quantity, tag_name, product_id) values (?, ?, ?)",
+        )
+        .bind(variant.quantity)
+        .bind(
+            variant
+                .tags
+                .iter()
+                .map(|e| e.to_string())
+                .reduce(|x, y| x + " " + &y),
+        )
+        .bind(variant.product)
+        .execute(&mut **db)
+        .await
+        .map_err(|e| e.to_string())?;
+
+        Ok("ok")
+    }
+
+    #[allow(private_interfaces)]
     #[get("/get_websiteinfo")]
     pub(super) async fn get_websiteinfo(mut db: Connection<RoboDatabase>) -> Json<Vec<Product>> {
         let rows = rocket_db_pools::sqlx::query("select * from website_information")
@@ -432,9 +550,12 @@ mod api {
 
     #[allow(private_interfaces)]
     #[post("/update_websiteinfo", data = "<info>")]
-    pub(super) async fn update_websiteinfo(info: Form<WebsiteInfo>, mut db: Connection<RoboDatabase>) -> Result<Redirect, String> {
-    // SQL query to update the website information in the database
-    let result = rocket_db_pools::sqlx::query(
+    pub(super) async fn update_websiteinfo(
+        info: Form<WebsiteInfo>,
+        mut db: Connection<RoboDatabase>,
+    ) -> Result<Redirect, String> {
+        // SQL query to update the website information in the database
+        let result = rocket_db_pools::sqlx::query(
         "UPDATE website_information SET desc = CASE name
             WHEN 'aboutClub1' THEN ?
             WHEN 'aboutClub2' THEN ?
@@ -456,13 +577,12 @@ mod api {
     .execute(&mut **db)
     .await;
 
-    // Handle the result of the database operation
-    match result {
-        Ok(_) => Ok(Redirect::to("/adminconfirm.html")),
-        Err(err) => Err(format!("Database error: {err}")),
+        // Handle the result of the database operation
+        match result {
+            Ok(_) => Ok(Redirect::to("/adminconfirm.html")),
+            Err(err) => Err(format!("Database error: {err}")),
+        }
     }
-}
-
 }
 
 // Route to set homepage.html on run
@@ -477,15 +597,21 @@ async fn rocket() -> _ {
         .attach(api::RoboDatabase::init())
         .mount("/", routes![homepage])
         .mount("/", FileServer::from("./pages"))
-        .mount("/api", routes![
-            api::get_items, 
-            api::add_item, 
-            api::get_websiteinfo, 
-            api::update_websiteinfo, 
-            api::create_admin, 
-            api::login, 
-            api::logout, 
-            api::admin_menu, 
-            api::current_user,
-            api::get_product_variants])
+        .mount(
+            "/api",
+            routes![
+                api::get_items,
+                api::add_item,
+                api::get_websiteinfo,
+                api::update_websiteinfo,
+                api::create_admin,
+                api::login,
+                api::logout,
+                api::admin_menu,
+                api::current_user,
+                api::get_product_variants,
+                api::mod_product_variant,
+                api::add_product_variant,
+            ],
+        )
 }
