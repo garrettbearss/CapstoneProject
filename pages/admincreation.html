@@ -201,6 +201,12 @@
             fetchUserName();
         });
 
+        // Clear password fields on page load
+        window.addEventListener('load', function() {
+            document.getElementById('password').value = '';
+            document.getElementById('confirmPassword').value = '';
+        });
+
         // Handle form submission
         document.getElementById('adminForm').addEventListener('submit', async function(event) {
             event.preventDefault(); // Prevent form submission
