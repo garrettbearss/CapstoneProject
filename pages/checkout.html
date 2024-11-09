@@ -91,32 +91,6 @@
             border-radius: 10px;
             background-color: #fff;
         }
-        .payment-form label {
-            font-size: 18px;
-            display: block;
-            margin-bottom: 10px;
-        }
-        .payment-form input {
-            padding: 10px;
-            font-size: 16px;
-            width: 100%;
-            margin-bottom: 20px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-        }
-        .payment-form button {
-            background-color: #002664;
-            color: white;
-            border: none;
-            padding: 15px 20px;
-            font-size: 18px;
-            cursor: pointer;
-            border-radius: 5px;
-            width: 100%;
-        }
-        .payment-form button:hover {
-            background-color: #eaab00;
-        }
 
         @media (max-width: 768px) {
             .content h1 {
@@ -156,86 +130,52 @@
 
     <!-- Main Content Section -->
     <div class="content">
-        <h1>Payment Verification</h1>
+        <h1>Checkout</h1>
         <p>Please review your order and enter your payment details below to complete the purchase.</p>
 
         <!-- Placeholder Section for Total Amount and Number of Products -->
         <div class="total-info">
             <p><strong>Number of Products:</strong> <span id="product-count">Insert Product Count</span></p>
-            <p><strong>Total Amount Due:</strong> <span id="total-amount">Insert total</span></p>
+            <p><strong>Total Amount Due:</strong> $<span id="total-amount">Insert total</span></p>
         </div>
 
         <!-- Payment Form -->
         <div class="payment-form">
-            <form id="payment-form">
-                <label for="email">Email</label>
-                <input type="email" id="email" name="email" required>
-
-                <label for="phone">Phone Number</label>
-                <input type="tel" id="phone" name="phone" required>
-
-                <label for="address">Address</label>
-                <input type="text" id="address" name="address" required>
-
-                <label for="cardholder-name">Cardholder Name</label>
-                <input type="text" id="cardholder-name" name="cardholder-name" required>
-
-                <!-- Stripe Card Element will be inserted here -->
-                <div id="card-element"></div>
-
-                <!-- Error message for card validation errors -->
-                <div id="card-errors" role="alert"></div>
-
-                <!-- Updated Pay Now Button -->
-                <button type="submit" id="pay-now-button">Pay Now</button>
-            </form>
+            <!-- PayPal Button Container -->
+            <div id="paypal-button-container"></div>
         </div>
     </div>
 
-    <!-- Stripe JavaScript Library -->
-    <script src="https://js.stripe.com/v3/"></script>
-
-    <!-- JavaScript for handling Stripe payment -->
+    <!-- PayPal JavaScript SDK -->
+    <script src="https://www.paypal.com/sdk/js?client-id=AWVWTY_zn8OZtBxVDK3cdkbtRUTouQKZjath8OHPqu1SR4CxXCBh1dbKKg_10eZtnUNiLsYNPpHZn6eP&currency=USD"></script>
     <script>
-        var stripe = Stripe('pk_test_51QCjSqIRj9rI1NWfpEJ3xFm4Zv2buOx62zM7iCKRQXtt0CHtaXuzFmFVnylg16g9i6AJ2h4jYU3mKMXmd4KKXUoq00MSUjvKNV');
-        var elements = stripe.elements();
-        var style = { base: { fontSize: '16px', color: '#32325d' }};
-        var card = elements.create('card', {style: style});
-        card.mount('#card-element');
+        // Set the total amount dynamically (replace this with the actual total from your app)
+        const totalAmount = document.getElementById('total-amount').innerText;
 
-        card.on('change', function(event) {
-            var displayError = document.getElementById('card-errors');
-            displayError.textContent = event.error ? event.error.message : '';
-        });
+        paypal.Buttons({
+            createOrder: function(data, actions) {
+                return actions.order.create({
+                    purchase_units: [{
+                        amount: {
+                            value: totalAmount
+                        }
+                    }]
+                });
+            },
+            onApprove: function(data, actions) {
+                return actions.order.capture().then(function(details) {
+                    alert('Transaction completed by ' + details.payer.name.given_name);
+                    window.location.href = 'orderconfirmation.html';
+                });
+            },
+            onError: function(err) {
+                console.error('Error with PayPal transaction', err);
+                alert('There was an error processing your payment. Please try again.');
+            }
+        }).render('#paypal-button-container');
+    </script>
 
-        var form = document.getElementById('payment-form');
-        form.addEventListener('submit', function(event) {
-            event.preventDefault();
-            var email = document.getElementById('email').value;
-            var phone = document.getElementById('phone').value;
-            var address = document.getElementById('address').value;
-            var cardholderName = document.getElementById('cardholder-name').value;
-
-            stripe.createToken(card, {name: cardholderName}).then(function(result) {
-                if (result.error) {
-                    document.getElementById('card-errors').textContent = result.error.message;
-                } else {
-                    stripeTokenHandler(result.token, email, phone, address);
-                }
-            });
-        });
-
-        function stripeTokenHandler(token, email, phone, address) {
-            // This function sends the token and additional data to your server for processing
-            console.log('Token created:', token);
-            console.log('Email:', email);
-            console.log('Phone:', phone);
-            console.log('Address:', address);
-
-            // Redirect to the order confirmation page
-            window.location.href = 'orderconfirmation.html';
-        }
-
+    <script>
         const colorblindButton = document.getElementById('colorblind-button');
         const cartCountElement = document.getElementById('cart-count');        
 
@@ -253,12 +193,10 @@
         });
         window.addEventListener('load', updateColorblindImage);
 
-        // Example function to update the cart count dynamically
         function updateCartCount(count) {
             cartCountElement.textContent = count;
         }
 
-        // Update cart count from storage or API (example count set here)
         window.addEventListener('load', function() {
             let cartCount = localStorage.getItem('cartCount') || 0;
             updateCartCount(cartCount);
