@@ -37,6 +37,15 @@
             background-color: #ddd;
             color: black;
         }
+        .navbar .cart-count {
+            background-color: #eaab00;
+            color: black;
+            padding: 5px 10px;
+            border-radius: 50%;
+            font-size: 14px;
+            margin-left: 5px;
+            display: inline-block;
+        }
         .navbar .colorblind-img {
             height: 45px;
             width: 45px;
@@ -116,7 +125,7 @@
         <a href="donate.html">Donate</a>
         <a href="aboutus.html">About Us</a>
         <a href="adminlogin.html">Admin Login</a>
-        <a href="shoppingcart.html">Shopping Cart</a>
+        <a href="shoppingcart.html">Shopping Cart <span class="cart-count" id="cart-count">0</span></a>
         <img src="images/Colorblind_Off.png" alt="Color Blind Off" class="colorblind-img" id="colorblind-button">
     </div>
 
@@ -127,7 +136,7 @@
 
         <!-- Admin User Creation Form -->
         <div class="admin-form">
-            <form id="adminForm" action="/api/create_admin" method="post">
+            <form id="adminForm">
                 <label for="username">Username</label>
                 <input type="text" id="username" name="username" placeholder="Enter username" required>
 
@@ -142,10 +151,11 @@
 
                 <button type="submit" class="submit-button">Create Admin</button>
             </form>
+            <div id="responseMessage" style="color: red; margin-top: 20px;"></div>
         </div>
     </div>
 
-    <!-- JavaScript for Password Validation and Colorblind Image Toggle -->
+    <!-- JavaScript for Password Validation and Handling Response -->
     <script>
         async function fetchUserName() {
             try {
@@ -198,14 +208,41 @@
         });
 
         // Handle form submission
-        document.getElementById('adminForm').addEventListener('submit', function(event) {
+        document.getElementById('adminForm').addEventListener('submit', async function(event) {
+            event.preventDefault(); // Prevent form submission
+
             // Validate that passwords match
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
 
             if (password !== confirmPassword) {
                 alert("Passwords do not match!");
-                event.preventDefault(); // Prevent form submission
+                return; // Exit if passwords don't match
+            }
+
+            const formData = new FormData(document.getElementById('adminForm'));
+            const responseMessageElement = document.getElementById('responseMessage');
+
+            try {
+                // Send data to the API
+                const response = await fetch('/api/create_admin', {
+                    method: 'POST',
+                    body: new URLSearchParams(formData)
+                });
+
+                // Parse JSON response
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    // If success, redirect to confirmation page
+                    window.location.href = '/adminconfirm.html';
+                } else {
+                    // Display error message from server
+                    responseMessageElement.textContent = result.message || 'Error creating admin.';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                responseMessageElement.textContent = 'An error occurred. Please try again.';
             }
         });
     </script>

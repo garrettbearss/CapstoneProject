@@ -37,6 +37,15 @@
             background-color: #ddd;
             color: black;
         }
+        .navbar .cart-count {
+            background-color: #eaab00;
+            color: black;
+            padding: 5px 10px;
+            border-radius: 50%;
+            font-size: 14px;
+            margin-left: 5px;
+            display: inline-block;
+        }
         .navbar .colorblind-img {
             height: 45px;
             width: 45px;
@@ -117,7 +126,7 @@
         <a href="donate.html">Donate</a>
         <a href="aboutus.html">About Us</a>
         <a href="adminlogin.html">Admin Login</a>
-        <a href="shoppingcart.html">Shopping Cart</a>
+        <a href="shoppingcart.html">Shopping Cart <span class="cart-count" id="cart-count">0</span></a>
         <img src="images/Colorblind_Off.png" alt="Color Blind Off" class="colorblind-img" id="colorblind-button">
     </div>
 
@@ -128,7 +137,7 @@
 
         <!-- Form to Modify Website Information -->
         <div class="info-form">
-            <form action="/api/update_websiteinfo" method="post">
+            <form id="websiteInfoForm">
                 <label for="club-desc1">About Club Description #1</label>
                 <textarea id="club-desc1" name="club_desc1" rows="2" placeholder="Enter first club description" required></textarea>
 
@@ -180,7 +189,36 @@
                 }
             }
         }
-        // Fetch data from the server and populate the aboutus page
+        // Function to handle form submission and process response
+        document.getElementById('websiteInfoForm').addEventListener('submit', async function(event) {
+            event.preventDefault(); // Prevent default form submission
+
+            const formData = new FormData(this); // Gather form data
+
+            try {
+                // Send the form data to the server
+                const response = await fetch('/api/update_websiteinfo', {
+                    method: 'POST',
+                    body: new URLSearchParams(formData)
+                });
+
+                // Parse the response JSON
+                const result = await response.json();
+
+                // If the update was successful
+                if (response.ok && result.success) {
+                    window.location.href = '/adminconfirm.html';  // Redirect to confirmation page
+                } else {
+                    // If the update failed, show an error message
+                    alert(result.message || 'An error occurred while updating website info.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again later.');
+            }
+        });
+
+        // Function to fetch and populate current website info (same as before)
         async function fetchModifyWebsiteData() {
             try {
                 const response = await fetch('/api/get_websiteinfo');
@@ -207,7 +245,7 @@
             }
         }
 
-        // Call the fetch function on load
+        // Call the fetch function on load to populate the form with current data
         window.addEventListener('load', fetchModifyWebsiteData);
 
         const colorblindButton = document.getElementById('colorblind-button');
@@ -243,6 +281,6 @@
         window.addEventListener('load', updateColorblindImage);
         window.addEventListener('load', fetchUserName());
     </script>
- 
+
 </body>
 </html>
