@@ -34,6 +34,15 @@
             background-color: #ddd;
             color: black;
         }
+        .navbar .cart-count {
+            background-color: #eaab00;
+            color: black;
+            padding: 5px 10px;
+            border-radius: 50%;
+            font-size: 14px;
+            margin-left: 5px;
+            display: inline-block;
+        }
         .navbar .colorblind-img {
             height: 40px;
             width: 40px;
@@ -99,7 +108,7 @@
         <a href="donate.html">Donate</a>
         <a href="aboutus.html">About Us</a>
         <a href="adminlogin.html">Admin Login</a>
-        <a href="shoppingcart.html">Shopping Cart</a>
+        <a href="shoppingcart.html">Shopping Cart <span class="cart-count" id="cart-count">0</span></a>
         <img src="images/Colorblind_Off.png" alt="Color Blind Off" class="colorblind-img" id="colorblind-button">
     </div>
 
@@ -121,6 +130,7 @@
     <!-- JavaScript for toggling the colorblind image -->
     <script>
         const colorblindButton = document.getElementById('colorblind-button');
+        const cartCountElement = document.getElementById('cart-count');
 
         // Function to update the image source from localStorage
         function updateColorblindImage() {
@@ -151,6 +161,17 @@
 
         // Update the image based on saved state in localStorage on page load
         window.addEventListener('load', updateColorblindImage);
+
+        // Example function to update the cart count dynamically
+        function updateCartCount(count) {
+            cartCountElement.textContent = count;
+        }
+
+        // Update cart count from storage or API (example count set here)
+        window.addEventListener('load', function() {
+            let cartCount = localStorage.getItem('cartCount') || 0;
+            updateCartCount(cartCount);
+        });
     </script>
 
 </body>
