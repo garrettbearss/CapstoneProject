@@ -37,6 +37,15 @@
             background-color: #ddd;
             color: black;
         }
+        .navbar .cart-count {
+            background-color: #eaab00;
+            color: black;
+            padding: 5px 10px;
+            border-radius: 50%;
+            font-size: 14px;
+            margin-left: 5px;
+            display: inline-block;
+        }
         .navbar .colorblind-img {
             height: 45px;
             width: 45px;
@@ -141,7 +150,7 @@
         <a href="donate.html">Donate</a>
         <a href="aboutus.html">About Us</a>
         <a href="adminlogin.html">Admin Login</a>
-        <a href="shoppingcart.html">Shopping Cart</a>
+        <a href="shoppingcart.html">Shopping Cart <span class="cart-count" id="cart-count">0</span></a>
         <img src="images/Colorblind_Off.png" alt="Color Blind Off" class="colorblind-img" id="colorblind-button">
     </div>
 
@@ -159,6 +168,15 @@
         <!-- Payment Form -->
         <div class="payment-form">
             <form id="payment-form">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required>
+
+                <label for="phone">Phone Number</label>
+                <input type="tel" id="phone" name="phone" required>
+
+                <label for="address">Address</label>
+                <input type="text" id="address" name="address" required>
+
                 <label for="cardholder-name">Cardholder Name</label>
                 <input type="text" id="cardholder-name" name="cardholder-name" required>
 
@@ -179,94 +197,72 @@
 
     <!-- JavaScript for handling Stripe payment -->
     <script>
-        // Create a Stripe client
-        var stripe = Stripe('your-publishable-key-here');
-
-        // Create an instance of Elements
+        var stripe = Stripe('pk_test_51QCjSqIRj9rI1NWfpEJ3xFm4Zv2buOx62zM7iCKRQXtt0CHtaXuzFmFVnylg16g9i6AJ2h4jYU3mKMXmd4KKXUoq00MSUjvKNV');
         var elements = stripe.elements();
-
-        // Custom styling for the card element
-        var style = {
-            base: {
-                fontSize: '16px',
-                color: '#32325d',
-            },
-        };
-
-        // Create an instance of the card Element
+        var style = { base: { fontSize: '16px', color: '#32325d' }};
         var card = elements.create('card', {style: style});
-
-        // Add an instance of the card Element into the `card-element` div
         card.mount('#card-element');
 
-        // Handle real-time validation errors from the card Element
         card.on('change', function(event) {
             var displayError = document.getElementById('card-errors');
-            if (event.error) {
-                displayError.textContent = event.error.message;
-            } else {
-                displayError.textContent = '';
-            }
+            displayError.textContent = event.error ? event.error.message : '';
         });
 
-        // Handle form submission
         var form = document.getElementById('payment-form');
         form.addEventListener('submit', function(event) {
             event.preventDefault();
+            var email = document.getElementById('email').value;
+            var phone = document.getElementById('phone').value;
+            var address = document.getElementById('address').value;
+            var cardholderName = document.getElementById('cardholder-name').value;
 
-            stripe.createToken(card).then(function(result) {
+            stripe.createToken(card, {name: cardholderName}).then(function(result) {
                 if (result.error) {
-                    // Inform the user if there was an error
-                    var errorElement = document.getElementById('card-errors');
-                    errorElement.textContent = result.error.message;
+                    document.getElementById('card-errors').textContent = result.error.message;
                 } else {
-                    // Send the token to your server
-                    stripeTokenHandler(result.token);
+                    stripeTokenHandler(result.token, email, phone, address);
                 }
             });
         });
 
-        // Submit the token to your server
-        function stripeTokenHandler(token) {
-            // You can send the token to your server for processing or mock the process
+        function stripeTokenHandler(token, email, phone, address) {
+            // This function sends the token and additional data to your server for processing
             console.log('Token created:', token);
+            console.log('Email:', email);
+            console.log('Phone:', phone);
+            console.log('Address:', address);
 
-            // Redirect to the order confirmation page after successful token creation
+            // Redirect to the order confirmation page
             window.location.href = 'orderconfirmation.html';
         }
 
-        // JavaScript for toggling the colorblind image
         const colorblindButton = document.getElementById('colorblind-button');
+        const cartCountElement = document.getElementById('cart-count');        
 
-        // Function to update the image source from localStorage
         function updateColorblindImage() {
             const savedState = localStorage.getItem('colorblindMode');
             if (savedState) {
-                colorblindButton.setAttribute('src', savedState);  // Set to saved image source
+                colorblindButton.setAttribute('src', savedState);
             }
         }
-
-        // Add a click event listener to toggle the image source
         colorblindButton.addEventListener('click', function() {
             const currentSrc = colorblindButton.getAttribute('src');
-            let newSrc;
-
-            // Toggle between 'Colorblind_Off.png' and 'Colorblind_On.png'
-            if (currentSrc === 'images/Colorblind_Off.png') {
-                newSrc = 'images/Colorblind_On.png';
-            } else {
-                newSrc = 'images/Colorblind_Off.png';
-            }
-
-            // Set the new image source
+            const newSrc = currentSrc === 'images/Colorblind_Off.png' ? 'images/Colorblind_On.png' : 'images/Colorblind_Off.png';
             colorblindButton.setAttribute('src', newSrc);
-
-            // Store the new state in localStorage
             localStorage.setItem('colorblindMode', newSrc);
         });
-
-        // Update the image based on saved state in localStorage on page load
         window.addEventListener('load', updateColorblindImage);
+
+        // Example function to update the cart count dynamically
+        function updateCartCount(count) {
+            cartCountElement.textContent = count;
+        }
+
+        // Update cart count from storage or API (example count set here)
+        window.addEventListener('load', function() {
+            let cartCount = localStorage.getItem('cartCount') || 0;
+            updateCartCount(cartCount);
+        });
     </script>
 
 </body>
