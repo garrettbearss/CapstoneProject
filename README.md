@@ -72,11 +72,11 @@ The primary goals of the project are:
    - Launch the application locally by navigating to `http://localhost:8000` in your browser.
 
 2. **Product Browsing and Checkout**
-   - Browse available products on the Products page and add items to the shopping cart.
+   - Browse available products on the products page and add items to the shopping cart.
    - Go to the checkout page to review the cart and proceed with the PayPal checkout.
 
 3. **Donations**
-   - Navigate to the "Donate" page to contribute custom amounts to support the club.
+   - Navigate to the `donate.html` page to contribute custom amounts to support the club.
 
 4. **Color-Blind Accessibility Toggle**
    - Use the toggle button in the navbar to activate color-blind mode, designed for improved accessibility.
