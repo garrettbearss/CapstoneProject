@@ -91,6 +91,18 @@
             font-size: 20px;
             margin-top: 20px;
         }
+        .remove-button {
+            background-color: #002664;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .remove-button:hover {
+            background-color: #eaab00;
+        }
         .checkout-button {
             background-color: #002664;
             color: white;
@@ -151,7 +163,20 @@
         <p>Review your selected items in your cart and proceed to checkout.</p>
         <!-- Cart Items Table -->
         <div class="cart-container" id="cart-container">
-            <!-- Cart will be loaded here dynamically -->
+            <table id="cart-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Quantity</th>
+                        <th>Price</th>
+                        <th>Subtotal</th>
+                        <th>Remove</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Cart items will be dynamically inserted here -->
+                </tbody>
+            </table>
         </div>
         <a href="checkout.html">
             <button class="checkout-button">Proceed to Checkout</button>
@@ -162,57 +187,46 @@
     <script>
 
         // Fetch items from the cookies and display them
-        async function loadProducts() {
+        async function loadCart() {
             try {
                 const response = await fetch('api/getcart');
-                const products = await response.json();
+                const cartItems = await response.json();
                 
-                const cartContainer = document.getElementById('cart-container');
+                const tableBody = document.querySelector('#cart-table tbody');
                 
                 // Clear any existing content
-                cartContainer.innerHTML = '';
+                tableBody.innerHTML = '';
 
                 // Populate with new product items
-                products.forEach(product => {
-                    const productDiv = document.createElement('div');
-                    productDiv.classList.add('product-display');
-                    
-                    // Create product elements
-                    const img = document.createElement('img');
-                    img.src = `data:image/png;base64,${product.image}`;
-                    img.alt = product.name;
+                cartItems.forEach(product => {
 
-                    const name = document.createElement('div');
-                    name.classList.add('product-description');
-                    name.textContent = product.name;
+                    //create table outline
+                    const row = document.createElement('tr');
 
-                    const desc = document.createElement('p');
-                    desc.textContent = product.desc;
+                    //create inside table
+                    row.innerHTML = `
+                        <td>${item.name}</td>
+                        <td>${item.quantity}</td>
+                        <td>$${item.price.toFixed(2)}</td>
+                        <td>$${(item.quantity * item.price).toFixed(2)}</td>
+                        <td><button class="remove-button" onclick="removeItem('${item.name}')">Remove</button></td>
+                    `;
 
-                    const price = document.createElement('div');
-                    price.classList.add('product-price');
-                    price.textContent = `$${(product.price).toFixed(2)}`;  // Display price in dollars
-
-                    const button = document.createElement('button');
-                    button.classList.add('remove-button');
-                    button.textContent = 'Remove';
-
-                    // Append elements to the product div
-                    productDiv.appendChild(img);
-                    productDiv.appendChild(name);
-                    productDiv.appendChild(desc);
-                    productDiv.appendChild(price);   // Added price element
-                    productDiv.appendChild(button);
-
-                    // Append product div to the container
-                    productContainer.appendChild(productDiv);
+                    tableBody.appendChild(row);
                 });
             } catch (error) {
-                console.error('Error loading products:', error);
+                console.error('Error loading cart:', error);
             }
         }
-        // Load products on page load
-        window.addEventListener('DOMContentLoaded', loadProducts);
+        // Load cart on page load
+        window.addEventListener('DOMContentLoaded', loadCart);
+
+
+        // Function to remove an item from the cart
+        async function removeItem(itemName) {
+            await fetch(`/removecart?name=${encodeURIComponent(itemName)}`, { method: 'POST' });
+            loadCart(); // Refresh the table after removing an item
+        }
 
         const colorblindButton = document.getElementById('colorblind-button');
         const cartCountElement = document.getElementById('cart-count');

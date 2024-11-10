@@ -175,6 +175,15 @@
                     const button = document.createElement('button');
                     button.classList.add('buy-button');
                     button.textContent = 'Add to Cart';
+                    button.addEventListener('click', (event) => {
+                    const productDiv = event.target.closest('.product-display');
+                    const product = {
+                        id: productDiv.dataset.id,
+                        name: productDiv.querySelector('.product-description').textContent,
+                        price: parseFloat(productDiv.querySelector('.product-price').textContent.slice(1))
+                    };
+                    addToCart(product);
+                    });
 
                     // Append elements to the product div
                     productDiv.appendChild(img);
@@ -196,26 +205,18 @@
 
         async function addToCart(product) {
             try {
-                const response = await fetch('/addcart');
-                const success = await response.json();
-                //popup for add
+                const response = await fetch('api/addcart', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(product)
+                });
+                if (response.ok) {
+                    const cartCount = await response.json();
+                    updateCartCount(cartCount);
+                }
             } catch (error) {
                 console.error('Error adding to cart', error);
             }
-        }
-
-        function setupAddToCartButtons() {
-            document.querySelectorAll('.buy-button').forEach(button => {
-                button.addEventListener('click', (event) => {
-                    const productDiv = event.target.closest('.product-display');
-                    const product = {
-                        id: productDiv.dataset.id,
-                        name: productDiv.querySelector('.product-description').textContent,
-                        price: parseFloat(productDiv.querySelector('.product-price').textContent.slice(1))
-                    };
-                    addToCart(product);
-                });
-            });
         }
 
         const colorblindButton = document.getElementById('colorblind-button');
