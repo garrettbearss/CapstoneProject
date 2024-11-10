@@ -447,6 +447,56 @@ mod api {
         hex::encode(result) // Return the hex representation of the hash
     }
 
+    #[derive(Serialize,Deserialize)]
+    struct CartItem {
+        name: String,
+        quantity: u32,
+        price: f32,
+    }
+
+    #[get("/addcart")]
+    pub async fn add_cart(
+        pot: &CookieJar<'_>,
+        item: Json<CartItem>
+    ) -> &'static str{
+        
+        // Retrieve the existing cart from the cookie, or initialize an empty cart
+        let mut cart_items: Vec<CartItem> = if let Some(cookie) = pot.get("cart_items") {
+            serde_json::from_str(cookie.value()).unwrap_or_default()
+        } else {
+            vec![]
+        };
+
+        // Add the new item to the cart
+        cart_items.push(item.into_inner());
+
+        // Convert the updated cart to a JSON string
+        let cart_json = serde_json::to_string(&cart_items).unwrap();
+
+        // Store the updated cart in the cookie
+        pot.add(Cookie::new("cart_items", cart_json));
+
+        "Item added to cart"
+    }
+
+    #[get("/getcart")]
+    pub async fn get_cart(
+        pot: &CookieJar<'_>
+    ) -> String {
+        // Retrieve the cart items from cookies
+        let mut cart_items = vec![];
+        
+        if let Some(cookie) = pot.get("cart_item") {
+            // Parse the JSON string back into a CartItem
+            if let Ok(item) = serde_json::from_str::<CartItem>(cookie.value()) {
+                cart_items.push(item);
+            }
+        }
+
+        // Convert cart items to JSON response
+        serde_json::to_string(&cart_items).unwrap()
+    }
+
     #[allow(private_interfaces)]
     #[get("/getitems")]
     pub(super) async fn get_items(
@@ -676,6 +726,8 @@ async fn rocket() -> _ {
                 api::get_product_variants,
                 api::mod_product_variant,
                 api::add_product_variant,
+                api::add_cart,
+                api::get_cart,
             ],
         )
 }

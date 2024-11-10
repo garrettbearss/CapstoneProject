@@ -193,6 +193,31 @@
         // Load products on page load
         window.addEventListener('DOMContentLoaded', loadProducts);
 
+
+        async function addToCart(product) {
+            try {
+                const response = await fetch('/addcart');
+                const success = await response.json();
+                //popup for add
+            } catch (error) {
+                console.error('Error adding to cart', error);
+            }
+        }
+
+        function setupAddToCartButtons() {
+            document.querySelectorAll('.buy-button').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const productDiv = event.target.closest('.product-display');
+                    const product = {
+                        id: productDiv.dataset.id,
+                        name: productDiv.querySelector('.product-description').textContent,
+                        price: parseFloat(productDiv.querySelector('.product-price').textContent.slice(1))
+                    };
+                    addToCart(product);
+                });
+            });
+        }
+
         const colorblindButton = document.getElementById('colorblind-button');
         const cartCountElement = document.getElementById('cart-count');
 
