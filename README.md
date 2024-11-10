@@ -46,10 +46,8 @@ The primary goals of the project are:
      ```bash
      cargo install rocket
      ```
-   - Configure the database (SQLite) in the `.env` file, providing database credentials if needed:
-     ```
-     DATABASE_URL=sqlite://./database.db
-     ```
+   - Configure the database (SQLite) in the `db.sqlite` file
+     
    - Set up environment variables for PayPal client ID and secret:
      ```
      PAYPAL_CLIENT_ID=your_paypal_client_id
