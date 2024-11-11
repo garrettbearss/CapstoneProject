@@ -450,6 +450,7 @@ mod api {
     #[derive(Serialize,Deserialize, FromForm)]
     struct CartItem {
         name: String,
+        quantity: u32,
         price: f32,
     }
 
@@ -467,8 +468,17 @@ mod api {
             vec![]
         };
 
-        // Add the new item to the cart
-        cart_items.push(item.into_inner());
+        //item to be added, maybe
+        let mut new_item = item.into_inner();
+        // Check if the item already exists in the cart
+        if let Some(existing_item) = cart_items.iter_mut().find(|cart_item| cart_item.name == new_item.name) {
+            // If the item exists, update its quantity
+            existing_item.quantity += new_item.quantity;
+        } else {
+            // If the item does not exist, add it to the cart
+            new_item.quantity = 1;
+            cart_items.push(new_item);
+        }
 
         // Convert the updated cart to a JSON string
         let cart_json = serde_json::to_string(&cart_items).unwrap();
@@ -492,6 +502,44 @@ mod api {
 
         // Convert cart items to JSON response
         serde_json::to_string(&cart_items).unwrap()
+    }
+
+    #[post("/removecart?<name>")]
+    pub async fn remove_cart(
+        pot: &CookieJar<'_>,
+        name: String
+    )-> Json<usize> {
+
+        //let decoded_name = decode(&name)unwrap_or(name);
+
+        // Retrieve the existing cart from the cookie
+        let cart_items: Vec<CartItem> = if let Some(cookie) = pot.get("cart_items") {
+            if let Ok(mut items) = serde_json::from_str::<Vec<CartItem>>(cookie.value()) {
+                //if items.iter.any(|item| item.name == decoded_name){
+
+                
+                // Filter out the item to be removed
+                items.retain(|item| item.name != name);
+    
+                // Update the cookie with the remaining items
+                let updated_cart = serde_json::to_string(&items).unwrap();
+                pot.add(Cookie::new("cart_items", updated_cart));
+                items
+                //}
+            }else{
+                // Retrieve the existing cart from the cookie, or initialize an empty cart
+                let cart_items: Vec<CartItem> = if let Some(cookie) = pot.get("cart_items") {
+                    serde_json::from_str(cookie.value()).unwrap_or_default()
+                }else {
+                    vec![]
+                };
+                cart_items
+            }
+        }else{
+            vec![]
+        };
+        
+        Json(cart_items.len())
     }
 
     #[allow(private_interfaces)]
@@ -725,6 +773,7 @@ async fn rocket() -> _ {
                 api::add_product_variant,
                 api::add_cart,
                 api::get_cart,
+                api::remove_cart
             ],
         )
 }
