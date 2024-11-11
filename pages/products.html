@@ -175,6 +175,16 @@
                     const button = document.createElement('button');
                     button.classList.add('buy-button');
                     button.textContent = 'Add to Cart';
+                    button.addEventListener('click', (event) => {
+                    const productDiv = event.target.closest('.product-display');
+                    const product = {
+                        id: productDiv.dataset.id,
+                        name: productDiv.querySelector('.product-description').textContent,
+                        quantity: 1,
+                        price: parseFloat(productDiv.querySelector('.product-price').textContent.slice(1))
+                    };
+                    addToCart(product);
+                    });
 
                     // Append elements to the product div
                     productDiv.appendChild(img);
@@ -192,6 +202,23 @@
         }
         // Load products on page load
         window.addEventListener('DOMContentLoaded', loadProducts);
+
+
+        async function addToCart(product) {
+            try {
+                const response = await fetch('api/addcart', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(product)
+                });
+                if (response.ok) {
+                    const cartCount = await response.json();
+                    updateCartCount(cartCount);
+                }
+            } catch (error) {
+                console.error('Error adding to cart', error);
+            }
+        }
 
         const colorblindButton = document.getElementById('colorblind-button');
         const cartCountElement = document.getElementById('cart-count');
@@ -225,6 +252,27 @@
 
         // Update the image based on saved state in localStorage on page load
         window.addEventListener('load', updateColorblindImage);
+
+        async function fetchCartCount() {
+            try {
+                const response = await fetch('/api/getcart');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch cart items');
+                }
+
+                const cartItems = await response.json();
+                const cartCount = cartItems.length;
+
+                // Update the cart count in the navbar and in localStorage
+                updateCartCount(cartCount);
+                localStorage.setItem('cartCount', cartCount);
+            } catch (error) {
+                console.error('Error fetching cart count:', error);
+            }
+        }
+
+        // Load cart count on page load from the server
+        window.addEventListener('DOMContentLoaded', fetchCartCount);
 
         // Example function to update the cart count dynamically
         function updateCartCount(count) {
