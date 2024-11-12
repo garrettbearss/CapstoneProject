@@ -65,6 +65,7 @@
     <script>
         async function fetchUserName() {
             try {
+                retryCount = 0;
                 const response1 = await fetch('/api/current_user');
                 const response2 = await fetch('/api/admin_menu');
                 if (response1.ok && response2.ok) {
