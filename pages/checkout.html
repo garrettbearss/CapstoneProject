@@ -4,113 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kent State Robotics Club - Checkout</title>
+    <link rel="icon" href="/images/KSR_Donation_A.jpg" type="image/x-icon">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        *, *::before, *::after {
-            box-sizing: inherit;
-        }
-        .navbar {
-            display: flex;
-            align-items: center;
-            background-color: #333;
-            padding: 10px;
-            flex-wrap: wrap;
-        }
-        .navbar img {
-            height: 70px;
-            margin-right: 15px;
-        }
-        .navbar a {
-            color: white;
-            padding: 14px 20px;
-            text-align: center;
-            text-decoration: none;
-            font-size: 17px;
-            white-space: nowrap;
-        }
-        .navbar a:hover {
-            background-color: #ddd;
-            color: black;
-        }
-        .navbar .cart-count {
-            background-color: #eaab00;
-            color: black;
-            padding: 5px 10px;
-            border-radius: 50%;
-            font-size: 14px;
-            margin-left: 5px;
-            display: inline-block;
-        }
-        .navbar .colorblind-img {
-            height: 45px;
-            width: 45px;
-            margin-left: auto;
-            cursor: pointer;
-        }
-        .content {
-            padding: 20px;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .content h1 {
-            color: #333;
-            font-size: 2.5em;
-        }
-        .content p {
-            color: #555;
-            font-size: 1.2em;
-            margin-bottom: 30px;
-        }
-        .total-info {
-            background-color: #f9f9f9;
-            padding: 20px;
-            margin-bottom: 20px;
-            border: 1px solid #ccc;
-            border-radius: 10px;
-            text-align: left;
-            max-width: 500px;
-            width: 100%;
-        }
-        .total-info p {
-            font-size: 18px;
-            margin: 5px 0;
-        }
-        .payment-form {
-            max-width: 500px;
-            width: 100%;
-            margin: 0 auto;
-            padding: 20px;
-            border: 1px solid #ccc;
-            border-radius: 10px;
-            background-color: #fff;
-        }
-
+        body {font-family: Arial, sans-serif;margin: 0;padding: 0;box-sizing: border-box;}
+        *, *::before, *::after {box-sizing: inherit;}
+        .navbar {display: flex;align-items: center;background-color: #333;padding: 10px;flex-wrap: wrap;}
+        .navbar img {height: 70px;margin-right: 15px;}
+        .navbar a {color: white;padding: 14px 20px;text-align: center;text-decoration: none;font-size: 17px;white-space: nowrap;}
+        .navbar a:hover {background-color: #ddd;color: black;}
+        .navbar .cart-count {background-color: #eaab00;color: black;padding: 5px 10px;border-radius: 50%;font-size: 14px;margin-left: 5px;display: inline-block;}
+        .navbar .colorblind-img {height: 45px;width: 45px;margin-left: auto;cursor: pointer;}
+        .content {padding: 20px;text-align: center;display: flex;flex-direction: column;align-items: center;}
+        .content h1 {color: #333;font-size: 2.5em;}
+        .content p {color: #555;font-size: 1.2em;margin-bottom: 30px;}
+        .total-info {background-color: #f9f9f9;padding: 20px;margin-bottom: 20px;border: 1px solid #ccc;border-radius: 10px;text-align: left;max-width: 500px;width: 100%;}
+        .total-info p {font-size: 18px;margin: 5px 0;}
+        .payment-form {max-width: 500px;width: 100%;margin: 0 auto;padding: 20px;border: 1px solid #ccc;border-radius: 10px;background-color: #fff;}
         @media (max-width: 768px) {
-            .content h1 {
-                font-size: 2em;
-            }
-            .content p {
-                font-size: 1em;
-            }
+            .content h1 {font-size: 2em;}
+            .content p {font-size: 1em;}
         }
-
         @media (max-width: 480px) {
-            .navbar a {
-                font-size: 14px;
-            }
-            .content h1 {
-                font-size: 1.7em;
-            }
-            .content p {
-                font-size: 0.9em;
-            }
+            .navbar a {font-size: 14px;}
+            .content h1 {font-size: 1.7em;}
+            .content p {font-size: 0.9em;}
         }
     </style>
 </head>
@@ -135,8 +52,8 @@
 
         <!-- Placeholder Section for Total Amount and Number of Products -->
         <div class="total-info">
-            <p><strong>Number of Products:</strong> <span id="product-count">Insert Product Count</span></p>
-            <p><strong>Total Amount Due:</strong> $<span id="total-amount">Insert total</span></p>
+            <p><strong>Number of Products:</strong> <span id="product-count">0</span></p>
+            <p><strong>Total Amount Due:</strong> $<span id="total-amount">0.00</span></p>
         </div>
 
         <!-- Payment Form -->
@@ -149,11 +66,73 @@
     <!-- PayPal JavaScript SDK -->
     <script src="https://www.paypal.com/sdk/js?client-id=AWVWTY_zn8OZtBxVDK3cdkbtRUTouQKZjath8OHPqu1SR4CxXCBh1dbKKg_10eZtnUNiLsYNPpHZn6eP&currency=USD"></script>
     <script>
-        // Set the total amount dynamically (replace this with the actual total from your app)
-        const totalAmount = document.getElementById('total-amount').innerText;
+        const colorblindButton = document.getElementById('colorblind-button');
+        const cartCountElement = document.getElementById('cart-count');        
+
+        function updateColorblindImage() {
+            const savedState = localStorage.getItem('colorblindMode');
+            if (savedState) {
+                colorblindButton.setAttribute('src', savedState);
+            }
+        }
+        colorblindButton.addEventListener('click', function() {
+            const currentSrc = colorblindButton.getAttribute('src');
+            const newSrc = currentSrc === 'images/Colorblind_Off.png' ? 'images/Colorblind_On.png' : 'images/Colorblind_Off.png';
+            colorblindButton.setAttribute('src', newSrc);
+            localStorage.setItem('colorblindMode', newSrc);
+        });
+        window.addEventListener('load', updateColorblindImage);
+
+        async function fetchCartCount() {
+            try {
+                const response = await fetch('/api/getcart');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch cart items');
+                }
+
+                const cartItems = await response.json();
+                const cartCount = cartItems.length;
+
+                updateCartCount(cartCount);
+                localStorage.setItem('cartCount', cartCount);
+            } catch (error) {
+                console.error('Error fetching cart count:', error);
+            }
+        }
+
+        function updateCartCount(count) {
+            cartCountElement.textContent = count;
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchCartCount();
+            loadCart();
+        });
+
+        async function loadCart() {
+            try {
+                const response = await fetch('/api/getcart');
+                const cartItems = await response.json();
+                
+                let total = 0;
+                let totalQuantity = 0;
+
+                cartItems.forEach(product => {
+                    totalQuantity += product.quantity;
+                    total += product.price * product.quantity;
+                });
+
+                // Display the total quantity and total price
+                document.getElementById('product-count').textContent = totalQuantity;
+                document.getElementById('total-amount').textContent = total.toFixed(2);
+            } catch (error) {
+                console.error('Error loading cart:', error);
+            }
+        }
 
         paypal.Buttons({
             createOrder: function(data, actions) {
+                const totalAmount = document.getElementById('total-amount').innerText;
                 return actions.order.create({
                     purchase_units: [{
                         amount: {
@@ -173,56 +152,6 @@
                 alert('There was an error processing your payment. Please try again.');
             }
         }).render('#paypal-button-container');
-    </script>
-
-    <script>
-        const colorblindButton = document.getElementById('colorblind-button');
-        const cartCountElement = document.getElementById('cart-count');        
-
-        function updateColorblindImage() {
-            const savedState = localStorage.getItem('colorblindMode');
-            if (savedState) {
-                colorblindButton.setAttribute('src', savedState);
-            }
-        }
-        colorblindButton.addEventListener('click', function() {
-            const currentSrc = colorblindButton.getAttribute('src');
-            const newSrc = currentSrc === 'images/Colorblind_Off.png' ? 'images/Colorblind_On.png' : 'images/Colorblind_Off.png';
-            colorblindButton.setAttribute('src', newSrc);
-            localStorage.setItem('colorblindMode', newSrc);
-        });
-        window.addEventListener('load', updateColorblindImage);
-
-        // Function to fetch cart count from server and update it in the navbar
-        async function fetchCartCount() {
-            try {
-                const response = await fetch('/api/getcart');
-                if (!response.ok) {
-                    throw new Error('Failed to fetch cart items');
-                }
-
-                const cartItems = await response.json();
-                const cartCount = cartItems.length;
-
-                // Update the cart count in the navbar and in localStorage
-                updateCartCount(cartCount);
-                localStorage.setItem('cartCount', cartCount);
-            } catch (error) {
-                console.error('Error fetching cart count:', error);
-            }
-        }
-
-        // Load cart count on page load from the server
-        window.addEventListener('DOMContentLoaded', fetchCartCount);
-
-        function updateCartCount(count) {
-            cartCountElement.textContent = count;
-        }
-
-        window.addEventListener('load', function() {
-            let cartCount = localStorage.getItem('cartCount') || 0;
-            updateCartCount(cartCount);
-        });
     </script>
 
 </body>

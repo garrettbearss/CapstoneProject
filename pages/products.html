@@ -4,115 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kent State Robotics Club - Products Display</title>
+    <link rel="icon" href="/images/KSR_Donation_A.jpg" type="image/x-icon">
     <style> 
-        /* CSS styles */
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        *, *::before, *::after {
-            box-sizing: inherit;
-        }
-        .navbar {
-            display: flex;
-            align-items: center;
-            background-color: #333;
-            padding: 10px;
-            flex-wrap: wrap;
-        }
-        .navbar img {
-            height: 70px;
-            margin-right: 15px;
-        }
-        .navbar a {
-            color: white;
-            padding: 14px 20px;
-            text-align: center;
-            text-decoration: none;
-            font-size: 17px;
-            white-space: nowrap;
-        }
-        .navbar a:hover {
-            background-color: #ddd;
-            color: black;
-        }
-        .navbar .cart-count {
-            background-color: #eaab00;
-            color: black;
-            padding: 5px 10px;
-            border-radius: 50%;
-            font-size: 14px;
-            margin-left: 5px;
-            display: inline-block;
-        }
-        .navbar .colorblind-img {
-            height: 45px;
-            width: 45px;
-            margin-left: auto;
-            cursor: pointer;
-        }
-        .content {
-            padding: 20px;
-            text-align: center;
-        }
-        .content h1 {
-            color: #333;
-            font-size: 2.5em;
-        }
-        .content p {
-            color: #555;
-            font-size: 1.2em;
-        }
-        .product-container {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-top: 40px;
-        }
-        .product-display {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            border: 2px solid #ccc;
-            border-radius: 10px;
-            max-width: 300px;
-            width: 100%;
-            margin: 0 10px;
-            box-sizing: border-box;
-        }
-        .product-display img {
-            width: 100%;
-            max-width: 250px;
-            height: auto;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            margin-bottom: 15px;
-        }
-        .product-description {
-            font-size: 18px;
-            color: #555;
-            margin-bottom: 15px;
-        }
-        .product-price {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 15px;
-        }
-        .buy-button {
-            background-color: #002664;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            font-size: 18px;
-            cursor: pointer;
-            border-radius: 5px;
-        }
-        .buy-button:hover {
-            background-color: #eaab00;
-        }
+        body {font-family: Arial, sans-serif;margin: 0;padding: 0;box-sizing: border-box;}
+        *, *::before, *::after {box-sizing: inherit;}
+        .navbar {display: flex;align-items: center;background-color: #333;padding: 10px;flex-wrap: wrap;}
+        .navbar img {height: 70px;margin-right: 15px;}
+        .navbar a {color: white;padding: 14px 20px;text-align: center;text-decoration: none;font-size: 17px;white-space: nowrap;}
+        .navbar a:hover {background-color: #ddd;color: black;}
+        .navbar .cart-count {background-color: #eaab00;color: black;padding: 5px 10px;border-radius: 50%;font-size: 14px;margin-left: 5px;display: inline-block;}
+        .navbar .colorblind-img {height: 45px;width: 45px;margin-left: auto;cursor: pointer;}
+        .content {padding: 20px;text-align: center;}
+        .content h1 {color: #333;font-size: 2.5em;}
+        .content p {color: #555;font-size: 1.2em;}
+        .product-container {display: flex;justify-content: center;flex-wrap: wrap;margin-top: 40px;}
+        .product-display {display: flex;flex-direction: column;align-items: center;padding: 20px;border: 2px solid #ccc;border-radius: 10px;max-width: 300px;width: 100%;margin: 0 10px;box-sizing: border-box;}
+        .product-display img {width: 100%;max-width: 250px;height: auto;border: 1px solid #ddd;border-radius: 10px;margin-bottom: 15px;}
+        .product-description {font-size: 18px;color: #555;margin-bottom: 15px;}
+        .product-price {font-size: 18px;font-weight: bold;margin-bottom: 15px;}
+        .buy-button {background-color: #002664;color: white;border: none;padding: 10px 20px;font-size: 18px;cursor: pointer;border-radius: 5px;}
+        .buy-button:hover {background-color: #eaab00;}
     </style>
 </head>
 <body>

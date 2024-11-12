@@ -168,6 +168,12 @@ mod api {
         password: String,
     }
 
+    #[derive(FromForm, Serialize, Deserialize)]
+    struct AdminUser {
+        id: i32,
+        username: String,
+    }
+
     #[derive(Serialize)]
     struct CurrentUserResponse {
         username: String,
@@ -742,6 +748,55 @@ mod api {
         }
     }
 
+    #[allow(private_interfaces)]
+    #[get("/get_admins")]
+    pub(super) async fn get_admins(
+        mut db: Connection<RoboDatabase>,
+    ) -> Result<Json<Vec<String>>, Status> {
+        // SQL query to fetch all usernames from the admins table
+        let usernames_query = rocket_db_pools::sqlx::query("SELECT username FROM admins")
+            .fetch_all(&mut **db)
+            .await;
+
+        // Map rows to Vec<String> containing only usernames
+        match usernames_query {
+            Ok(rows) => {
+                let usernames: Vec<String> = rows
+                    .into_iter()
+                    .map(|row| row.get("username"))
+                    .collect();
+                Ok(Json(usernames))
+            }
+            Err(_) => Err(Status::InternalServerError),
+        }
+    }
+
+
+    #[allow(private_interfaces)]
+    #[delete("/delete_admin/<username>")]
+    pub(super) async fn delete_admin(
+        username: &str,
+        mut db: Connection<RoboDatabase>,
+    ) -> Result<Json<ResponseData>, Status> {
+        // SQL query to delete the admin by username
+        let result = rocket_db_pools::sqlx::query("DELETE FROM admins WHERE username = ?")
+            .bind(username)
+            .execute(&mut **db)
+            .await;
+
+        // Handle the result of the database operation
+        match result {
+            Ok(_) => Ok(Json(ResponseData {
+                success: true,
+                message: "Admin user deleted successfully.".to_string(),
+            })),
+            Err(_) => Err(Status::InternalServerError),
+        }
+    }
+
+
+
+
 }
 
 // Route to set homepage.html on run
@@ -773,7 +828,9 @@ async fn rocket() -> _ {
                 api::add_product_variant,
                 api::add_cart,
                 api::get_cart,
-                api::remove_cart
+                api::remove_cart,
+                api::get_admins,
+                api::delete_admin
             ],
         )
 }
