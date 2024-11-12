@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kent State Robotics Club - Delete Admin User</title>
+    <link rel="icon" href="/images/KSR_Donation_A.jpg" type="image/x-icon">
+    <style>
+        body {font-family: Arial, sans-serif;margin: 0;padding: 0;box-sizing: border-box;}
+        *, *::before, *::after {box-sizing: inherit;}
+        .navbar {display: flex;flex-wrap: wrap;align-items: center;background-color: #333;padding: 10px;}
+        .navbar img {height: 70px;margin-right: 15px;}
+        .navbar a {color: white;padding: 14px 20px;text-align: center;text-decoration: none;font-size: 17px;white-space: nowrap;}
+        .navbar a:hover {background-color: #ddd;color: black;}
+        .navbar .cart-count {background-color: #eaab00;color: black;padding: 5px 10px;border-radius: 50%;font-size: 14px;margin-left: 5px;display: inline-block;}
+        .navbar .colorblind-img {height: 45px;width: 45px;margin-left: auto;cursor: pointer;}
+        .content {padding: 20px;text-align: center;}
+        .content h1 {color: #333;font-size: 2em;}
+        .content p {color: #555;font-size: 1.2em;}
+        .admin-form {margin: 0 auto;max-width: 90%;padding: 20px;border: 2px solid #ccc;border-radius: 10px;background-color: #f9f9f9;}
+        .admin-form label {display: block;margin: 10px 0 5px;font-size: 18px;color: #333;}
+        .admin-form select {width: 100%;padding: 15px;font-size: 18px;margin-bottom: 20px;border: 1px solid #ccc;border-radius: 5px;background-color: #fff;}
+        .admin-form select option {font-size: 18px;}
+        .submit-button {background-color: #002664;color: white;border: none;padding: 15px;font-size: 18px;cursor: pointer;border-radius: 5px;width: 100%;}
+        .submit-button {background-color: #d9534f;}
+        @media (min-width: 768px) {
+            .navbar img {height: 70px;}
+            .content h1 {font-size: 2.5em;}
+            .content p {font-size: 1.5em;}
+            .admin-form {max-width: 600px;}
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation Menu Bar -->
+    <div class="navbar">
+        <img src="images/KSRLogo_C.png" alt="Kent State Robotics Logo">
+        <a href="homepage.html">Homepage</a>
+        <a href="products.html">Products</a>
+        <a href="donate.html">Donate</a>
+        <a href="aboutus.html">About Us</a>
+        <a href="adminlogin.html">Admin Login</a>
+        <a href="shoppingcart.html">Shopping Cart <span class="cart-count" id="cart-count">0</span></a>
+        <img src="images/Colorblind_Off.png" alt="Color Blind Off" class="colorblind-img" id="colorblind-button">
+    </div>
+
+    <!-- Main Content Section -->
+    <div class="content">
+        <h1>Delete Admin User</h1>
+        <p>Select an admin user from the dropdown menu and click "Delete Admin" to remove them from the system.</p>
+
+        <!-- Admin Deletion Form -->
+        <div class="admin-form">
+            <form id="adminDeleteForm">
+                <label for="adminUser">Select Admin User</label>
+                <select id="adminUser" name="adminUser" required>
+                    <!-- Options populated dynamically by JavaScript -->
+                </select>
+
+                <button type="submit" class="submit-button">Delete Admin</button>
+            </form>
+            <div id="responseMessage" style="color: red; margin-top: 20px;"></div>
+        </div>
+    </div>
+
+    <script>
+        // Fetch and populate admin users in the dropdown
+        async function loadAdminUsers() {
+            try {
+                const response = await fetch('/api/get_admins');
+                if (response.ok) {
+                    const users = await response.json();
+                    const userSelect = document.getElementById('adminUser');
+                    users.forEach(user => {
+                        const option = document.createElement('option');
+                        option.value = user; // Use username as the value
+                        option.textContent = user; // Display username as option text
+                        userSelect.appendChild(option);
+                    });
+                } else {
+                    console.error("Failed to load admin users.");
+                }
+            } catch (error) {
+                console.error("Error loading admin users:", error);
+            }
+        }
+    
+        document.getElementById('adminDeleteForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const username = document.getElementById('adminUser').value;
+    
+            try {
+                const response = await fetch(`/api/delete_admin/${username}`, { method: 'DELETE' });
+                const result = await response.json();
+    
+                if (response.ok && result.success) {
+                    // Redirect to adminconfirm.html with a success message
+                    window.location.href = `adminconfirm.html?status=success`;
+                } else {
+                    // Redirect to adminconfirm.html with an error message
+                    window.location.href = `adminconfirm.html?status=error&message=${encodeURIComponent(result.message || 'Error deleting admin user.')}`;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                window.location.href = `adminconfirm.html?status=error&message=${encodeURIComponent('An error occurred. Please try again.')}`;
+            }
+        });
+    
+        window.addEventListener('load', loadAdminUsers);
+
+        // Colorblind Mode Toggle
+        const colorblindButton = document.getElementById('colorblind-button');
+        const cartCountElement = document.getElementById('cart-count');
+
+        // Function to update the image source from localStorage
+        function updateColorblindImage() {
+            const savedState = localStorage.getItem('colorblindMode');
+            if (savedState) {
+                colorblindButton.setAttribute('src', savedState);  // Set to saved image source
+            }
+        }
+
+        // Add a click event listener to toggle the image source
+        colorblindButton.addEventListener('click', function() {
+            const currentSrc = colorblindButton.getAttribute('src');
+            let newSrc;
+
+            // Toggle between 'Colorblind_Off.png' and 'Colorblind_On.png'
+            if (currentSrc === 'images/Colorblind_Off.png') {
+                newSrc = 'images/Colorblind_On.png';
+            } else {
+                newSrc = 'images/Colorblind_Off.png';
+            }
+
+            // Set the new image source
+            colorblindButton.setAttribute('src', newSrc);
+
+            // Store the new state in localStorage
+            localStorage.setItem('colorblindMode', newSrc);
+        });
+
+        // Update the image based on saved state in localStorage on page load
+        window.addEventListener('load', updateColorblindImage);
+
+        // Function to fetch cart count from server and update it in the navbar
+        async function fetchCartCount() {
+            try {
+                const response = await fetch('/api/getcart');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch cart items');
+                }
+
+                const cartItems = await response.json();
+                const cartCount = cartItems.length;
+
+                // Update the cart count in the navbar and in localStorage
+                updateCartCount(cartCount);
+                localStorage.setItem('cartCount', cartCount);
+            } catch (error) {
+                console.error('Error fetching cart count:', error);
+            }
+        }
+
+        // Load cart count on page load from the server
+        window.addEventListener('DOMContentLoaded', fetchCartCount);
+
+        // Example function to update the cart count dynamically
+        function updateCartCount(count) {
+            cartCountElement.textContent = count;
+        }
+
+        // Update cart count from storage or API (example count set here)
+        window.addEventListener('load', function() {
+            let cartCount = localStorage.getItem('cartCount') || 0;
+            updateCartCount(cartCount);
+        });
+        
+        window.addEventListener('load', fetchUserName());
+    </script>    
+</body>
+</html>
