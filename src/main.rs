@@ -447,6 +447,101 @@ mod api {
         hex::encode(result) // Return the hex representation of the hash
     }
 
+    #[derive(Serialize,Deserialize, FromForm)]
+    struct CartItem {
+        name: String,
+        quantity: u32,
+        price: f32,
+    }
+
+    #[allow(private_interfaces)]
+    #[post("/addcart", data="<item>")]
+    pub async fn add_cart(
+        pot: &CookieJar<'_>,
+        item: Json<CartItem>
+    ) -> Json<usize> {
+        
+        // Retrieve the existing cart from the cookie, or initialize an empty cart
+        let mut cart_items: Vec<CartItem> = if let Some(cookie) = pot.get("cart_items") {
+            serde_json::from_str(cookie.value()).unwrap_or_default()
+        } else {
+            vec![]
+        };
+
+        //item to be added, maybe
+        let mut new_item = item.into_inner();
+        // Check if the item already exists in the cart
+        if let Some(existing_item) = cart_items.iter_mut().find(|cart_item| cart_item.name == new_item.name) {
+            // If the item exists, update its quantity
+            existing_item.quantity += new_item.quantity;
+        } else {
+            // If the item does not exist, add it to the cart
+            new_item.quantity = 1;
+            cart_items.push(new_item);
+        }
+
+        // Convert the updated cart to a JSON string
+        let cart_json = serde_json::to_string(&cart_items).unwrap();
+
+        // Store the updated cart in the cookie
+        pot.add(Cookie::new("cart_items", cart_json));
+
+        Json(cart_items.len())
+    }
+
+    #[get("/getcart")]
+    pub async fn get_cart(
+        pot: &CookieJar<'_>
+    ) -> String {
+        // Retrieve the cart items from cookies, or return an empty array if not found
+        let cart_items: Vec<CartItem> = if let Some(cookie) = pot.get("cart_items") {
+            serde_json::from_str(cookie.value()).unwrap_or_default()
+        } else {
+            vec![]
+        };
+
+        // Convert cart items to JSON response
+        serde_json::to_string(&cart_items).unwrap()
+    }
+
+    #[post("/removecart?<name>")]
+    pub async fn remove_cart(
+        pot: &CookieJar<'_>,
+        name: String
+    )-> Json<usize> {
+
+        //let decoded_name = decode(&name)unwrap_or(name);
+
+        // Retrieve the existing cart from the cookie
+        let cart_items: Vec<CartItem> = if let Some(cookie) = pot.get("cart_items") {
+            if let Ok(mut items) = serde_json::from_str::<Vec<CartItem>>(cookie.value()) {
+                //if items.iter.any(|item| item.name == decoded_name){
+
+                
+                // Filter out the item to be removed
+                items.retain(|item| item.name != name);
+    
+                // Update the cookie with the remaining items
+                let updated_cart = serde_json::to_string(&items).unwrap();
+                pot.add(Cookie::new("cart_items", updated_cart));
+                items
+                //}
+            }else{
+                // Retrieve the existing cart from the cookie, or initialize an empty cart
+                let cart_items: Vec<CartItem> = if let Some(cookie) = pot.get("cart_items") {
+                    serde_json::from_str(cookie.value()).unwrap_or_default()
+                }else {
+                    vec![]
+                };
+                cart_items
+            }
+        }else{
+            vec![]
+        };
+        
+        Json(cart_items.len())
+    }
+
     #[allow(private_interfaces)]
     #[get("/getitems")]
     pub(super) async fn get_items(
@@ -676,6 +771,9 @@ async fn rocket() -> _ {
                 api::get_product_variants,
                 api::mod_product_variant,
                 api::add_product_variant,
+                api::add_cart,
+                api::get_cart,
+                api::remove_cart
             ],
         )
 }
