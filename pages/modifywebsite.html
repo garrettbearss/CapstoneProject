@@ -82,9 +82,11 @@
     <script>
         async function fetchUserName() {
             try {
-                const response = await fetch('/api/current_user');
-                if (response.ok) {
-                    const data = await response.json();
+                retryCount = 0;
+                const response1 = await fetch('/api/current_user');
+                const response2 = await fetch('/api/admin_menu');
+                if (response1.ok && response2.ok) {
+                    const data = await response1.json();
                     if(data && data.username){
                         document.getElementById('user-name').innerText = data.username;
                     } else{
