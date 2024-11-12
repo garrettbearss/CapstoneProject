@@ -52,8 +52,8 @@
 
         <!-- Placeholder Section for Total Amount and Number of Products -->
         <div class="total-info">
-            <p><strong>Number of Products:</strong> <span id="product-count">Insert Product Count</span></p>
-            <p><strong>Total Amount Due:</strong> $<span id="total-amount">Insert total</span></p>
+            <p><strong>Number of Products:</strong> <span id="product-count">0</span></p>
+            <p><strong>Total Amount Due:</strong> $<span id="total-amount">0.00</span></p>
         </div>
 
         <!-- Payment Form -->
@@ -66,11 +66,73 @@
     <!-- PayPal JavaScript SDK -->
     <script src="https://www.paypal.com/sdk/js?client-id=AWVWTY_zn8OZtBxVDK3cdkbtRUTouQKZjath8OHPqu1SR4CxXCBh1dbKKg_10eZtnUNiLsYNPpHZn6eP&currency=USD"></script>
     <script>
-        // Set the total amount dynamically (replace this with the actual total from your app)
-        const totalAmount = document.getElementById('total-amount').innerText;
+        const colorblindButton = document.getElementById('colorblind-button');
+        const cartCountElement = document.getElementById('cart-count');        
+
+        function updateColorblindImage() {
+            const savedState = localStorage.getItem('colorblindMode');
+            if (savedState) {
+                colorblindButton.setAttribute('src', savedState);
+            }
+        }
+        colorblindButton.addEventListener('click', function() {
+            const currentSrc = colorblindButton.getAttribute('src');
+            const newSrc = currentSrc === 'images/Colorblind_Off.png' ? 'images/Colorblind_On.png' : 'images/Colorblind_Off.png';
+            colorblindButton.setAttribute('src', newSrc);
+            localStorage.setItem('colorblindMode', newSrc);
+        });
+        window.addEventListener('load', updateColorblindImage);
+
+        async function fetchCartCount() {
+            try {
+                const response = await fetch('/api/getcart');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch cart items');
+                }
+
+                const cartItems = await response.json();
+                const cartCount = cartItems.length;
+
+                updateCartCount(cartCount);
+                localStorage.setItem('cartCount', cartCount);
+            } catch (error) {
+                console.error('Error fetching cart count:', error);
+            }
+        }
+
+        function updateCartCount(count) {
+            cartCountElement.textContent = count;
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchCartCount();
+            loadCart();
+        });
+
+        async function loadCart() {
+            try {
+                const response = await fetch('/api/getcart');
+                const cartItems = await response.json();
+                
+                let total = 0;
+                let totalQuantity = 0;
+
+                cartItems.forEach(product => {
+                    totalQuantity += product.quantity;
+                    total += product.price * product.quantity;
+                });
+
+                // Display the total quantity and total price
+                document.getElementById('product-count').textContent = totalQuantity;
+                document.getElementById('total-amount').textContent = total.toFixed(2);
+            } catch (error) {
+                console.error('Error loading cart:', error);
+            }
+        }
 
         paypal.Buttons({
             createOrder: function(data, actions) {
+                const totalAmount = document.getElementById('total-amount').innerText;
                 return actions.order.create({
                     purchase_units: [{
                         amount: {
@@ -90,56 +152,6 @@
                 alert('There was an error processing your payment. Please try again.');
             }
         }).render('#paypal-button-container');
-    </script>
-
-    <script>
-        const colorblindButton = document.getElementById('colorblind-button');
-        const cartCountElement = document.getElementById('cart-count');        
-
-        function updateColorblindImage() {
-            const savedState = localStorage.getItem('colorblindMode');
-            if (savedState) {
-                colorblindButton.setAttribute('src', savedState);
-            }
-        }
-        colorblindButton.addEventListener('click', function() {
-            const currentSrc = colorblindButton.getAttribute('src');
-            const newSrc = currentSrc === 'images/Colorblind_Off.png' ? 'images/Colorblind_On.png' : 'images/Colorblind_Off.png';
-            colorblindButton.setAttribute('src', newSrc);
-            localStorage.setItem('colorblindMode', newSrc);
-        });
-        window.addEventListener('load', updateColorblindImage);
-
-        // Function to fetch cart count from server and update it in the navbar
-        async function fetchCartCount() {
-            try {
-                const response = await fetch('/api/getcart');
-                if (!response.ok) {
-                    throw new Error('Failed to fetch cart items');
-                }
-
-                const cartItems = await response.json();
-                const cartCount = cartItems.length;
-
-                // Update the cart count in the navbar and in localStorage
-                updateCartCount(cartCount);
-                localStorage.setItem('cartCount', cartCount);
-            } catch (error) {
-                console.error('Error fetching cart count:', error);
-            }
-        }
-
-        // Load cart count on page load from the server
-        window.addEventListener('DOMContentLoaded', fetchCartCount);
-
-        function updateCartCount(count) {
-            cartCountElement.textContent = count;
-        }
-
-        window.addEventListener('load', function() {
-            let cartCount = localStorage.getItem('cartCount') || 0;
-            updateCartCount(cartCount);
-        });
     </script>
 
 </body>
