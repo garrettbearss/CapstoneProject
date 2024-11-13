@@ -144,7 +144,7 @@
                         <option value="">Select a product</option>`;
                 
                 products.forEach(product => {
-                    productOptions += `<option value="${product.product_id}">${product.name}</option>`;
+                    productOptions += `<option value="${product.name}">${product.name}</option>`;
                 });
                 productOptions += `</select>`;
 
@@ -187,6 +187,8 @@
 
         // Function to populate product details based on the selected product
         async function populateProductDetails(productId) {
+            console.log("Selected productId:", productId);
+            
             if (!productId) {
                 console.warn("No product selected.");
                 return; // If no product is selected, stop further execution
@@ -202,7 +204,7 @@
                 }
                 
                 //finds the specific product based on ID
-                const selectedProduct = products.find(product => product.product_id === parseInt(productId));
+                const selectedProduct = products.find(product => product.name === productId);
                 
                 if (!selectedProduct) {
                     console.error("Product not found with ID:", productId);
