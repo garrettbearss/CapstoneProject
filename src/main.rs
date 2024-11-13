@@ -42,6 +42,7 @@ mod api {
         desc: String,
         price: f32,
         image: Option<PathBuf>,
+        quantity: f32,
     }
     impl TryFrom<SqliteRow> for Product {
         type Error = String;
@@ -65,6 +66,9 @@ mod api {
                         _ => return Err(format!("Could not get `image`: {e}")),
                     },
                 },
+                quantity: value
+                    .try_get("quantity")
+                    .map_err(|e| format!("Could not get `quantity`: {e}"))?,
             })
         }
     }
