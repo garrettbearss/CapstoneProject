@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kent State Robotics Club - Check Order Status</title>
-    <link rel="icon" href="/images/KSR_Donation_A.jpg" type="image/x-icon">
+    <link rel="icon" href="/images/favicon.ico.jpg" type="image/x-icon">
     <style>
         body {font-family: Arial, sans-serif;margin: 0;padding: 0;height: 100vh;display: flex;flex-direction: column;box-sizing: border-box;}
         *, *::before, *::after {box-sizing: inherit;}
@@ -76,6 +76,7 @@
     <script>
         async function fetchUserName() {
             try {
+                retryCount = 0;
                 const response1 = await fetch('/api/current_user');
                 const response2 = await fetch('/api/admin_menu');
                 if (response1.ok && response2.ok) {

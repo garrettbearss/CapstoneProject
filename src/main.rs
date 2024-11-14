@@ -1,4 +1,8 @@
-use rocket::fs::{FileServer, NamedFile};
+use rocket::{
+    fs::{FileServer, NamedFile},
+    http::Method,
+    Route,
+};
 use rocket_db_pools::Database;
 
 #[macro_use]
@@ -8,15 +12,13 @@ mod api {
     use chrono::{Duration, NaiveDate, NaiveDateTime, Utc};
     use rand::{distributions::Alphanumeric, Rng};
     use rocket::form::Form;
-    use rocket::fs::NamedFile;
     use rocket::fs::TempFile;
     use rocket::futures::TryFutureExt;
     use rocket::http::Cookie;
     use rocket::http::CookieJar;
     use rocket::http::Status;
-    use rocket::response::Redirect;
-    use rocket::tokio::io::AsyncReadExt;
     use rocket::response::status::Custom;
+    use rocket::tokio::io::AsyncReadExt;
     use rocket::{futures::StreamExt, serde::json::Json};
     use rocket_db_pools::sqlx::sqlite::SqliteRow;
     use rocket_db_pools::{
@@ -246,27 +248,45 @@ mod api {
                 )
             })?;
 
-        let hashed_password = row
-            .try_get::<String, _>("password")
-            .map_err(|e| Custom(Status::InternalServerError, Json(ResponseData {
-                success: false,
-                message: format!("Database error: {}", e),
-            })))?;
-        let salt: String = row.try_get("salt").map_err(|e| Custom(Status::InternalServerError, Json(ResponseData {
-            success: false,
-            message: format!("Database error: {}", e),
-        })))?;
-        let expiration_str: String = row.try_get("expiration").map_err(|e| Custom(Status::InternalServerError, Json(ResponseData {
-            success: false,
-            message: format!("Database error: {}", e),
-        })))?;
+        let hashed_password = row.try_get::<String, _>("password").map_err(|e| {
+            Custom(
+                Status::InternalServerError,
+                Json(ResponseData {
+                    success: false,
+                    message: format!("Database error: {}", e),
+                }),
+            )
+        })?;
+        let salt: String = row.try_get("salt").map_err(|e| {
+            Custom(
+                Status::InternalServerError,
+                Json(ResponseData {
+                    success: false,
+                    message: format!("Database error: {}", e),
+                }),
+            )
+        })?;
+        let expiration_str: String = row.try_get("expiration").map_err(|e| {
+            Custom(
+                Status::InternalServerError,
+                Json(ResponseData {
+                    success: false,
+                    message: format!("Database error: {}", e),
+                }),
+            )
+        })?;
 
         // Parse the expiration date from the string in "YYYY-MM-DD" format
-        let expiration_date = NaiveDate::parse_from_str(&expiration_str, "%Y-%m-%d")
-            .map_err(|e| Custom(Status::BadRequest, Json(ResponseData {
-                success: false,
-                message: format!("Date parse error: {}", e),
-            })))?;
+        let expiration_date =
+            NaiveDate::parse_from_str(&expiration_str, "%Y-%m-%d").map_err(|e| {
+                Custom(
+                    Status::BadRequest,
+                    Json(ResponseData {
+                        success: false,
+                        message: format!("Date parse error: {}", e),
+                    }),
+                )
+            })?;
 
         // Get the current UTC date
         let now = Utc::now().naive_utc().date();
@@ -278,15 +298,23 @@ mod api {
                 .bind(&login_form.username)
                 .execute(&mut **db)
                 .await
-                .map_err(|e| Custom(Status::InternalServerError, Json(ResponseData {
-                    success: false,
-                    message: format!("Failed to remove expired admin: {}", e),
-                })))?;
+                .map_err(|e| {
+                    Custom(
+                        Status::InternalServerError,
+                        Json(ResponseData {
+                            success: false,
+                            message: format!("Failed to remove expired admin: {}", e),
+                        }),
+                    )
+                })?;
 
-            return Err(Custom(Status::Unauthorized, Json(ResponseData {
-                success: false,
-                message: "Admin account has expired and has been removed.".into(),
-            })));
+            return Err(Custom(
+                Status::Unauthorized,
+                Json(ResponseData {
+                    success: false,
+                    message: "Admin account has expired and has been removed.".into(),
+                }),
+            ));
         }
 
         // Combine the input password with the salt and hash it
@@ -308,10 +336,15 @@ mod api {
             .bind(&login_form.username)
             .execute(&mut **db)
             .await
-            .map_err(|e| Custom(Status::InternalServerError, Json(ResponseData {
-                success: false,
-                message: format!("Failed to update token: {}", e),
-            })))?;
+            .map_err(|e| {
+                Custom(
+                    Status::InternalServerError,
+                    Json(ResponseData {
+                        success: false,
+                        message: format!("Failed to update token: {}", e),
+                    }),
+                )
+            })?;
 
             // Store the token in a cookie
             jar.add(Cookie::new("token", token));
@@ -321,10 +354,13 @@ mod api {
                 message: "Login successful.".into(),
             }))
         } else {
-            Err(Custom(Status::Unauthorized, Json(ResponseData {
-                success: false,
-                message: "Invalid username or password.".into(),
-            })))
+            Err(Custom(
+                Status::Unauthorized,
+                Json(ResponseData {
+                    success: false,
+                    message: "Invalid username or password.".into(),
+                }),
+            ))
         }
     }
 
@@ -354,10 +390,12 @@ mod api {
                 };
 
                 // Parse the token expiration string into NaiveDateTime
-                let token_expires = match NaiveDateTime::parse_from_str(&token_expiration_str, "%Y-%m-%d %H:%M:%S") {
-                    Ok(parsed_date) => parsed_date,
-                    Err(_) => return Err("Failed to parse token expiration.".to_string()),
-                };
+                let token_expires =
+                    match NaiveDateTime::parse_from_str(&token_expiration_str, "%Y-%m-%d %H:%M:%S")
+                    {
+                        Ok(parsed_date) => parsed_date,
+                        Err(_) => return Err("Failed to parse token expiration.".to_string()),
+                    };
 
                 let now = Utc::now().naive_utc(); // Get the current time in naive UTC
 
@@ -383,7 +421,6 @@ mod api {
         }
         Err("No valid token found.".to_string())
     }
-
 
     #[post("/logout")]
     pub async fn logout(jar: &CookieJar<'_>, mut db: Connection<RoboDatabase>) {
@@ -461,7 +498,7 @@ mod api {
         hex::encode(result) // Return the hex representation of the hash
     }
 
-    #[derive(Serialize,Deserialize, FromForm)]
+    #[derive(Serialize, Deserialize, FromForm)]
     struct CartItem {
         name: String,
         quantity: u32,
@@ -469,12 +506,8 @@ mod api {
     }
 
     #[allow(private_interfaces)]
-    #[post("/addcart", data="<item>")]
-    pub async fn add_cart(
-        pot: &CookieJar<'_>,
-        item: Json<CartItem>
-    ) -> Json<usize> {
-        
+    #[post("/addcart", data = "<item>")]
+    pub async fn add_cart(pot: &CookieJar<'_>, item: Json<CartItem>) -> Json<usize> {
         // Retrieve the existing cart from the cookie, or initialize an empty cart
         let mut cart_items: Vec<CartItem> = if let Some(cookie) = pot.get("cart_items") {
             serde_json::from_str(cookie.value()).unwrap_or_default()
@@ -485,7 +518,10 @@ mod api {
         //item to be added, maybe
         let mut new_item = item.into_inner();
         // Check if the item already exists in the cart
-        if let Some(existing_item) = cart_items.iter_mut().find(|cart_item| cart_item.name == new_item.name) {
+        if let Some(existing_item) = cart_items
+            .iter_mut()
+            .find(|cart_item| cart_item.name == new_item.name)
+        {
             // If the item exists, update its quantity
             existing_item.quantity += new_item.quantity;
         } else {
@@ -504,9 +540,7 @@ mod api {
     }
 
     #[get("/getcart")]
-    pub async fn get_cart(
-        pot: &CookieJar<'_>
-    ) -> String {
+    pub async fn get_cart(pot: &CookieJar<'_>) -> String {
         // Retrieve the cart items from cookies, or return an empty array if not found
         let cart_items: Vec<CartItem> = if let Some(cookie) = pot.get("cart_items") {
             serde_json::from_str(cookie.value()).unwrap_or_default()
@@ -519,11 +553,7 @@ mod api {
     }
 
     #[post("/removecart?<name>")]
-    pub async fn remove_cart(
-        pot: &CookieJar<'_>,
-        name: String
-    )-> Json<usize> {
-
+    pub async fn remove_cart(pot: &CookieJar<'_>, name: String) -> Json<usize> {
         //let decoded_name = decode(&name)unwrap_or(name);
 
         // Retrieve the existing cart from the cookie
@@ -531,28 +561,27 @@ mod api {
             if let Ok(mut items) = serde_json::from_str::<Vec<CartItem>>(cookie.value()) {
                 //if items.iter.any(|item| item.name == decoded_name){
 
-                
                 // Filter out the item to be removed
                 items.retain(|item| item.name != name);
-    
+
                 // Update the cookie with the remaining items
                 let updated_cart = serde_json::to_string(&items).unwrap();
                 pot.add(Cookie::new("cart_items", updated_cart));
                 items
                 //}
-            }else{
+            } else {
                 // Retrieve the existing cart from the cookie, or initialize an empty cart
                 let cart_items: Vec<CartItem> = if let Some(cookie) = pot.get("cart_items") {
                     serde_json::from_str(cookie.value()).unwrap_or_default()
-                }else {
+                } else {
                     vec![]
                 };
                 cart_items
             }
-        }else{
+        } else {
             vec![]
         };
-        
+
         Json(cart_items.len())
     }
 
@@ -702,7 +731,9 @@ mod api {
 
     #[allow(private_interfaces)]
     #[get("/get_websiteinfo")]
-    pub(super) async fn get_websiteinfo(mut db: Connection<RoboDatabase>) -> Json<Vec<Description>> {
+    pub(super) async fn get_websiteinfo(
+        mut db: Connection<RoboDatabase>,
+    ) -> Json<Vec<Description>> {
         let rows = rocket_db_pools::sqlx::query("select * from website_information")
             .fetch(&mut **db)
             .filter_map(|row| async move {
@@ -723,7 +754,7 @@ mod api {
         info: Form<WebsiteInfo>,
         mut db: Connection<RoboDatabase>,
         jar: &CookieJar<'_>,
-    ) -> Result<Redirect, String> {
+    ) -> Result<Json<Value>, String> {
         match validate_user(jar.get("token").map(|x| x.value()).unwrap_or("")) {
             Some(_) => {}
             None => return Err("Not logged in".into()),
@@ -808,16 +839,13 @@ mod api {
         // Map rows to Vec<String> containing only usernames
         match usernames_query {
             Ok(rows) => {
-                let usernames: Vec<String> = rows
-                    .into_iter()
-                    .map(|row| row.get("username"))
-                    .collect();
+                let usernames: Vec<String> =
+                    rows.into_iter().map(|row| row.get("username")).collect();
                 Ok(Json(usernames))
             }
             Err(_) => Err(Status::InternalServerError),
         }
     }
-
 
     #[allow(private_interfaces)]
     #[delete("/delete_admin/<username>")]
@@ -850,11 +878,16 @@ async fn homepage() -> Option<NamedFile> {
 
 #[launch]
 async fn rocket() -> _ {
+    let mut rootroutes = [
+        Route::new(Method::Get, "/<path..>", FileServer::from("./pages")),
+        Route::new(Method::Get, "/<path..>", FileServer::from("./product_images")),
+    ];
+    rootroutes[0].rank = -2;
+    rootroutes[1].rank = -1;
     rocket::build()
         .attach(api::RoboDatabase::init())
         .mount("/", routes![homepage])
-        .mount("/", FileServer::from("./pages"))
-        .mount("/", FileServer::from("./images"))
+        .mount("/", rootroutes)
         .mount(
             "/api",
             routes![
