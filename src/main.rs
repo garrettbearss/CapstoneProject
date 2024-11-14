@@ -8,14 +8,16 @@ mod api {
 
     use chrono::{Duration, NaiveDate, NaiveDateTime, Utc};
     use rand::{distributions::Alphanumeric, Rng};
-    use rocket::data::FromData;
+
     use rocket::form::Form;
     use rocket::fs::NamedFile;
+    use rocket::fs::TempFile;
     use rocket::futures::TryFutureExt;
     use rocket::http::Cookie;
     use rocket::http::CookieJar;
     use rocket::http::Status;
     use rocket::response::Redirect;
+    use rocket::tokio::io::AsyncReadExt;
     use rocket::{futures::StreamExt, serde::json::Json};
     use rocket_db_pools::sqlx::sqlite::SqliteRow;
     use rocket_db_pools::{
@@ -263,7 +265,7 @@ mod api {
         }
     }
 
-    fn validate_user(token: &str) -> Option<String> {
+    fn validate_user(_token: &str) -> Option<String> {
         Some("test".into())
     }
 
@@ -553,7 +555,12 @@ mod api {
     pub(super) async fn update_websiteinfo(
         info: Form<WebsiteInfo>,
         mut db: Connection<RoboDatabase>,
+        jar: &CookieJar<'_>,
     ) -> Result<Redirect, String> {
+        match validate_user(jar.get("token").map(|x| x.value()).unwrap_or("")) {
+            Some(_) => {}
+            None => return Err("Not logged in".into()),
+        };
         // SQL query to update the website information in the database
         let result = rocket_db_pools::sqlx::query(
         "UPDATE website_information SET desc = CASE name
@@ -583,6 +590,40 @@ mod api {
             Err(err) => Err(format!("Database error: {err}")),
         }
     }
+
+    #[post("/makeimage", data = "<image>")]
+    pub(super) async fn make_image(
+        mut image: Form<TempFile<'_>>,
+        jar: &CookieJar<'_>,
+    ) -> Result<Json<String>, String> {
+        match validate_user(jar.get("token").map(|x| x.value()).unwrap_or("")) {
+            Some(_) => {}
+            None => return Err("Not logged in".into()),
+        };
+
+        let tfile = image.open();
+        let mut contents = String::new();
+        tfile
+            .await
+            .map_err(|e| format!("File didn't upload {e}"))?
+            .read_to_string(&mut contents)
+            .await
+            .map_err(|e| format!("Couldnt read file {e}"))?;
+        let contents = contents;
+
+        let name = hash_password(&contents);
+        let ctype = image
+            .content_type()
+            .ok_or("No file type detected")?
+            .extension()
+            .ok_or("File type not recognized")?
+            .to_string();
+        image
+            .persist_to(format!("images/{name}.{ctype}",))
+            .await
+            .map_err(|e| format!("Couldn't save file {e}"))?;
+        Ok(Json(format!("{name}.{ctype}")))
+    }
 }
 
 // Route to set homepage.html on run
@@ -597,6 +638,7 @@ async fn rocket() -> _ {
         .attach(api::RoboDatabase::init())
         .mount("/", routes![homepage])
         .mount("/", FileServer::from("./pages"))
+        .mount("/", FileServer::from("./images"))
         .mount(
             "/api",
             routes![
@@ -612,6 +654,7 @@ async fn rocket() -> _ {
                 api::get_product_variants,
                 api::mod_product_variant,
                 api::add_product_variant,
+                api::make_image,
             ],
         )
 }
