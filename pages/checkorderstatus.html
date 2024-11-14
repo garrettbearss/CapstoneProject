@@ -4,138 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kent State Robotics Club - Check Order Status</title>
+    <link rel="icon" href="/images/KSR_Donation_A.jpg" type="image/x-icon">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            box-sizing: border-box;
-        }
-        *, *::before, *::after {
-            box-sizing: inherit;
-        }
-        .navbar {
-            display: flex;
-            align-items: center;
-            background-color: #333;
-            padding: 10px;
-            flex-wrap: wrap;
-        }
-        .navbar img {
-            height: 70px;
-            margin-right: 15px;
-        }
-        .navbar a {
-            color: white;
-            padding: 14px 20px;
-            text-align: center;
-            text-decoration: none;
-            font-size: 17px;
-            white-space: nowrap;
-        }
-        .navbar a:hover {
-            background-color: #ddd;
-            color: black;
-        }
-        .navbar .colorblind-img {
-            height: 45px;
-            width: 45px;
-            margin-left: auto;
-            cursor: pointer;
-        }
-        .content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            text-align: center;
-        }
-        .content h1 {
-            color: #333;
-            font-size: 2.5em;
-        }
-        .content p {
-            color: #555;
-            font-size: 1.2em;
-            margin-bottom: 30px;
-        }
-        .order-status-form {
-            margin: 20px auto;
-            max-width: 600px;
-            width: 100%;
-            padding: 20px;
-            border: 2px solid #ccc;
-            border-radius: 10px;
-            background-color: #f9f9f9;
-        }
-        .order-status-form label {
-            display: block;
-            margin: 10px 0 5px;
-            font-size: 18px;
-            color: #333;
-        }
-        .order-status-form input {
-            width: 100%;
-            padding: 10px;
-            font-size: 16px;
-            margin-bottom: 20px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-        .check-button {
-            background-color: #002664;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            font-size: 18px;
-            cursor: pointer;
-            border-radius: 5px;
-            width: 100%;
-        }
-        .check-button:hover {
-            background-color: #eaab00;
-        }
-        .status-display {
-            margin-top: 20px;
-            padding: 10px;
-            border: 2px solid #ccc;
-            border-radius: 10px;
-            max-width: 600px;
-            width: 100%;
-            text-align: center;
-            background-color: #f9f9f9;
-        }
-
+        body {font-family: Arial, sans-serif;margin: 0;padding: 0;height: 100vh;display: flex;flex-direction: column;box-sizing: border-box;}
+        *, *::before, *::after {box-sizing: inherit;}
+        .navbar {display: flex;align-items: center;background-color: #333;padding: 10px;flex-wrap: wrap;}
+        .navbar img {height: 70px;margin-right: 15px;}
+        .navbar a {color: white;padding: 14px 20px;text-align: center;text-decoration: none;font-size: 17px;white-space: nowrap;}
+        .navbar a:hover {background-color: #ddd;color: black;}
+        .navbar .cart-count {background-color: #eaab00;color: black;padding: 5px 10px;border-radius: 50%;font-size: 14px;margin-left: 5px;display: inline-block;}
+        .navbar .colorblind-img {height: 45px;width: 45px;margin-left: auto;cursor: pointer;}
+        .content {flex: 1;display: flex;flex-direction: column;align-items: center;justify-content: center;padding: 20px;text-align: center;}
+        .content h1 {color: #333;font-size: 2.5em;}
+        .content p {color: #555;font-size: 1.2em;margin-bottom: 30px;}
+        .order-status-form {margin: 20px auto;max-width: 600px;width: 100%;padding: 20px;border: 2px solid #ccc;border-radius: 10px;background-color: #f9f9f9;}
+        .order-status-form label {display: block;margin: 10px 0 5px;font-size: 18px;color: #333;}
+        .order-status-form input {width: 100%;padding: 10px;font-size: 16px;margin-bottom: 20px;border: 1px solid #ccc;border-radius: 5px;}
+        .check-button {background-color: #002664;color: white;border: none;padding: 10px 20px;font-size: 18px;cursor: pointer;border-radius: 5px;width: 100%;}
+        .check-button:hover {background-color: #eaab00;}
+        .status-display {margin-top: 20px;padding: 10px;border: 2px solid #ccc;border-radius: 10px;max-width: 600px;width: 100%;text-align: center;background-color: #f9f9f9;}
         @media (max-width: 768px) {
-            .content h1 {
-                font-size: 2em;
-            }
-            .content p {
-                font-size: 1em;
-            }
-            .order-status-form, .status-display {
-                max-width: 90%; 
-            }
+            .content h1 {font-size: 2em;}
+            .content p {font-size: 1em;}
+            .order-status-form, .status-display {max-width: 90%; }
         }
-
         @media (max-width: 480px) {
-            .navbar a {
-                font-size: 14px;
-            }
-            .content h1 {
-                font-size: 1.7em;
-            }
-            .content p {
-                font-size: 0.9em;
-            }
-            .order-status-form, .status-display {
-                max-width: 100%;
-            }
+            .navbar a {font-size: 14px;}
+            .content h1 {font-size: 1.7em;}
+            .content p {font-size: 0.9em;}
+            .order-status-form, .status-display {max-width: 100%;}
         }
     </style>
 </head>
@@ -149,7 +46,7 @@
         <a href="donate.html">Donate</a>
         <a href="aboutus.html">About Us</a>
         <a href="adminlogin.html">Admin Login</a>
-        <a href="shoppingcart.html">Shopping Cart</a>
+        <a href="shoppingcart.html">Shopping Cart <span class="cart-count" id="cart-count">0</span></a>
         <img src="images/Colorblind_Off.png" alt="Color Blind Off" class="colorblind-img" id="colorblind-button">
     </div>
 
@@ -179,9 +76,10 @@
     <script>
         async function fetchUserName() {
             try {
-                const response = await fetch('/api/current_user');
-                if (response.ok) {
-                    const data = await response.json();
+                const response1 = await fetch('/api/current_user');
+                const response2 = await fetch('/api/admin_menu');
+                if (response1.ok && response2.ok) {
+                    const data = await response1.json();
                     if(data && data.username){
                         document.getElementById('user-name').innerText = data.username;
                     } else{
@@ -201,6 +99,7 @@
             }
         }
         const colorblindButton = document.getElementById('colorblind-button');
+        const cartCountElement = document.getElementById('cart-count');
 
         // Function to update the image source from localStorage
         function updateColorblindImage() {
@@ -231,6 +130,40 @@
 
         // Update the image based on saved state in localStorage on page load
         window.addEventListener('load', updateColorblindImage);
+
+        // Function to fetch cart count from server and update it in the navbar
+        async function fetchCartCount() {
+            try {
+                const response = await fetch('/api/getcart');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch cart items');
+                }
+
+                const cartItems = await response.json();
+                const cartCount = cartItems.length;
+
+                // Update the cart count in the navbar and in localStorage
+                updateCartCount(cartCount);
+                localStorage.setItem('cartCount', cartCount);
+            } catch (error) {
+                console.error('Error fetching cart count:', error);
+            }
+        }
+
+        // Load cart count on page load from the server
+        window.addEventListener('DOMContentLoaded', fetchCartCount);
+
+        // Example function to update the cart count dynamically
+        function updateCartCount(count) {
+            cartCountElement.textContent = count;
+        }
+
+        // Update cart count from storage or API (example count set here)
+        window.addEventListener('load', function() {
+            let cartCount = localStorage.getItem('cartCount') || 0;
+            updateCartCount(cartCount);
+        });
+
         window.addEventListener('load', fetchUserName());
     </script>
  

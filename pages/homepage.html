@@ -1,122 +1,37 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kent State Robotics Club - Homepage</title>
+    <link rel="icon" href="/images/KSR_Donation_A.jpg" type="image/x-icon">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        *, *::before, *::after {
-            box-sizing: inherit;
-        }
-        .navbar {
-            display: flex;
-            align-items: center;
-            background-color: #333;
-            padding: 10px;
-            flex-wrap: wrap;
-        }
-        .navbar img {
-            height: 70px;
-            margin-right: 15px;
-        }
-        .navbar a {
-            color: white;
-            padding: 14px 20px;
-            text-align: center;
-            text-decoration: none;
-            font-size: 17px;
-            white-space: nowrap;
-        }
-        .navbar a:hover {
-            background-color: #ddd;
-            color: black;
-        }
-        .navbar .colorblind-img {
-            height: 45px;
-            width: 45px;
-            margin-left: auto;
-            cursor: pointer;
-        }
-        .content {
-            padding: 20px;
-            text-align: center;
-        }
-        .content h1 {
-            color: #333;
-            font-size: 2.5em;
-        }
-        .content p {
-            color: #555;
-            font-size: 1.2em;
-        }
-        .product-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            margin-top: 40px;
-        }
-        .product-display {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            border: 2px solid #ccc;
-            border-radius: 10px;
-            margin: 20px;
-            max-width: 300px;
-            flex: 1;
-            min-width: 250px;
-        }
-        .product-display img {
-            width: 100%;
-            height: auto;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            margin-bottom: 15px;
-        }
-        .product-description {
-            font-size: 1em;
-            color: #555;
-            margin-bottom: 15px;
-        }
-        .buy-button, .learn-button, .shop-button {
-            background-color: #002664;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            font-size: 1em;
-            cursor: pointer;
-            border-radius: 5px;
-            width: 100%;
-        }
-        .buy-button:hover, .learn-button:hover, .shop-button:hover {
-            background-color: #eaab00;
-        }
-
+        body {font-family: Arial, sans-serif;margin: 0;padding: 0;box-sizing: border-box;}
+        *, *::before, *::after {box-sizing: inherit;}
+        .navbar {display: flex;align-items: center;background-color: #333;padding: 10px;flex-wrap: wrap;}
+        .navbar img {height: 70px;margin-right: 15px;}
+        .navbar a {color: white;padding: 14px 20px;text-align: center;text-decoration: none;font-size: 17px;white-space: nowrap;}
+        .navbar a:hover {background-color: #ddd;color: black;}
+        .navbar .cart-count {background-color: #eaab00;color: black;padding: 5px 10px;border-radius: 50%;font-size: 14px;margin-left: 5px;display: inline-block;}
+        .navbar .colorblind-img {height: 45px;width: 45px;margin-left: auto;cursor: pointer;}
+        .content {padding: 20px;text-align: center;}
+        .content h1 {color: #333;font-size: 2.5em;}
+        .content p {color: #555;font-size: 1.2em;}
+        .product-container {display: flex;flex-wrap: wrap;justify-content: center;margin-top: 40px;}
+        .product-display {display: flex;flex-direction: column;align-items: center;padding: 20px;border: 2px solid #ccc;border-radius: 10px;margin: 20px;max-width: 300px;flex: 1;min-width: 250px;}
+        .product-display img {width: 100%;height: auto;border: 1px solid #ddd;border-radius: 10px;margin-bottom: 15px;}
+        .product-description {font-size: 1em;color: #555;margin-bottom: 15px;}
+        .buy-button, .learn-button, .shop-button {background-color: #002664;color: white;border: none;padding: 10px 20px;font-size: 1em;cursor: pointer;border-radius: 5px;width: 100%;}
+        .buy-button:hover, .learn-button:hover, .shop-button:hover {background-color: #eaab00;}
         @media (max-width: 768px) {
-            .navbar a {
-                font-size: 15px;
-            }
-            .content h1 {
-                font-size: 2em;
-            }
-            .content p {
-                font-size: 1em;
-            }
+            .navbar a {font-size: 15px;}
+            .content h1 {font-size: 2em;}
+            .content p {font-size: 1em;}
         }
         @media (max-width: 480px) {
-            .navbar a {
-                font-size: 14px;
-            }
-            .content h1 {
-                font-size: 1.5em;
-            }
+            .navbar a {font-size: 14px;}
+            .content h1 {font-size: 1.5em;}
         }
     </style>
 </head>
@@ -130,7 +45,7 @@
         <a href="donate.html">Donate</a>
         <a href="aboutus.html">About Us</a>
         <a href="adminlogin.html">Admin Login</a>
-        <a href="shoppingcart.html">Shopping Cart</a>
+        <a href="shoppingcart.html">Shopping Cart <span class="cart-count" id="cart-count">0</span></a>
         <img src="images/Colorblind_Off.png" alt="Color Blind Off" class="colorblind-img" id="colorblind-button">
     </div>
 
@@ -143,7 +58,7 @@
         <div class="product-container">
             <!-- Club Information Display -->
             <div class="product-display">
-                <img src="images/KSRLogo_B.png" alt="NASA Robotics Logo">
+                <img src="images/KSRLogo_B.png" alt="KSR Robotics Logo">
                 <div class="product-description">Learn more about the Kent State Robotics club below</div>
                 <a href="aboutus.html">
                     <button class="learn-button">Learn More</button>
@@ -152,8 +67,8 @@
 
             <!-- Shopping Information Display -->
             <div class="product-display">
-                <img src="NASA_Robotics_Shirt.jpg" alt="NASA Robotics Products">
-                <div class="product-description">Shop exclusive products from the club</div>
+                <img src="images/KSR_White_T-Shirt.png" alt="KSR Robotics Products">
+                <div class="product-description">Shop exclusive products directly from the Kent State Robotics club</div>
                 <a href="products.html">
                     <button class="shop-button">Browse Products</button>
                 </a>
@@ -161,7 +76,7 @@
 
             <!-- Donation Information Display -->
             <div class="product-display">
-                <img src="NASA_Robotics_Donation.jpg" alt="NASA Robotics Donation">
+                <img src="images/KSR_Donation_A.jpg" alt="KSR Robotics Donation">
                 <div class="product-description">Donate to help fund club activities</div>
                 <a href="donate.html">
                     <button class="buy-button">Donate Now</button>
@@ -170,9 +85,10 @@
         </div>
     </div>
 
-    <!-- JavaScript for toggling the colorblind image -->
+    <!-- JavaScript for cart count and toggling the colorblind image -->
     <script>
         const colorblindButton = document.getElementById('colorblind-button');
+        const cartCountElement = document.getElementById('cart-count');
 
         // Function to update the image source from localStorage
         function updateColorblindImage() {
@@ -204,9 +120,41 @@
         // Update the image based on saved state in localStorage on page load
         window.addEventListener('load', updateColorblindImage);
 
+        // Function to fetch cart count from server and update it in the navbar
+        async function fetchCartCount() {
+            try {
+                const response = await fetch('/api/getcart');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch cart items');
+                }
+
+                const cartItems = await response.json();
+                const cartCount = cartItems.length;
+
+                // Update the cart count in the navbar and in localStorage
+                updateCartCount(cartCount);
+                localStorage.setItem('cartCount', cartCount);
+            } catch (error) {
+                console.error('Error fetching cart count:', error);
+            }
+        }
+
+        // Load cart count on page load from the server
+        window.addEventListener('DOMContentLoaded', fetchCartCount);
+
+        // Example function to update the cart count dynamically
+        function updateCartCount(count) {
+            cartCountElement.textContent = count;
+        }
+
+        // Update cart count from storage or API (example count set here)
+        window.addEventListener('load', function() {
+            let cartCount = localStorage.getItem('cartCount') || 0;
+            updateCartCount(cartCount);
+        });
+
         // Logout request on page unload
         window.addEventListener("load", async function(event) {
-            // Call the logout function
             await fetch("/api/logout", { method: "POST" });
         });
     </script>

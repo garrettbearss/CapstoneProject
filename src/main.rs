@@ -5,10 +5,8 @@ use rocket_db_pools::Database;
 extern crate rocket;
 
 mod api {
-
     use chrono::{Duration, NaiveDate, NaiveDateTime, Utc};
     use rand::{distributions::Alphanumeric, Rng};
-
     use rocket::form::Form;
     use rocket::fs::NamedFile;
     use rocket::fs::TempFile;
@@ -18,6 +16,7 @@ mod api {
     use rocket::http::Status;
     use rocket::response::Redirect;
     use rocket::tokio::io::AsyncReadExt;
+    use rocket::response::status::Custom;
     use rocket::{futures::StreamExt, serde::json::Json};
     use rocket_db_pools::sqlx::sqlite::SqliteRow;
     use rocket_db_pools::{
@@ -25,6 +24,7 @@ mod api {
         Connection, Database,
     };
     use serde::{Deserialize, Serialize};
+    use serde_json::Value;
     use sha2::{Digest, Sha256};
     use std::path::PathBuf;
     use std::str::FromStr;
@@ -35,10 +35,18 @@ mod api {
     pub(super) struct RoboDatabase(SqlitePool);
 
     #[derive(Serialize, Deserialize)]
+    struct Description {
+        name: String,
+        desc: String,
+    }
+
+    #[derive(Serialize, Deserialize)]
     struct Product {
         name: String,
         desc: String,
+        price: f32,
         image: Option<PathBuf>,
+        quantity: f32,
     }
     impl TryFrom<SqliteRow> for Product {
         type Error = String;
@@ -47,21 +55,28 @@ mod api {
             Ok(Self {
                 name: value
                     .try_get("name")
-                    .map_err(|e| format!("Could not get `name` {e}"))?,
+                    .map_err(|e| format!("Could not get `name`: {e}"))?,
                 desc: value
                     .try_get("desc")
-                    .map_err(|e| format!("Could not get `desc` {e}"))?,
+                    .map_err(|e| format!("Could not get `desc`: {e}"))?,
+                price: value
+                    .try_get("price")
+                    .map_err(|e| format!("Could not get `price`: {e}"))?, // New field
                 image: match value.try_get("image") {
                     // If there is an error in the path, it treats it as if it was missing
                     Ok(s) => PathBuf::from_str(s).ok(),
                     Err(e) => match e {
                         rocket_db_pools::sqlx::Error::ColumnDecode { .. } => None,
-                        _ => return Err(format!("Could not get `image` {e}")),
+                        _ => return Err(format!("Could not get `image`: {e}")),
                     },
                 },
+                quantity: value
+                    .try_get("quantity")
+                    .map_err(|e| format!("Could not get `quantity`: {e}"))?,
             })
         }
     }
+
     #[derive(Serialize, Deserialize)]
     enum VarTag {
         Size(String),
@@ -161,6 +176,12 @@ mod api {
         password: String,
     }
 
+    #[derive(FromForm, Serialize, Deserialize)]
+    struct AdminUser {
+        id: i32,
+        username: String,
+    }
+
     #[derive(Serialize)]
     struct CurrentUserResponse {
         username: String,
@@ -197,29 +218,55 @@ mod api {
         (token, expiration) // Return both the token and its expiration time
     }
 
+    #[derive(Serialize)]
+    struct ResponseData {
+        success: bool,
+        message: String,
+    }
+
     #[allow(private_interfaces)]
     #[post("/login", data = "<login_form>")]
     pub async fn login(
         login_form: Form<LoginCredentials>,
         mut db: Connection<RoboDatabase>,
         jar: &CookieJar<'_>,
-    ) -> Result<Redirect, String> {
+    ) -> Result<Json<ResponseData>, Custom<Json<ResponseData>>> {
         // Fetch the admin from the database using the provided username
         let row = rocket_db_pools::sqlx::query("SELECT * FROM admins WHERE username = ?")
             .bind(&login_form.username)
             .fetch_one(&mut **db)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+                Custom(
+                    Status::InternalServerError,
+                    Json(ResponseData {
+                        success: false,
+                        message: format!("Database error: {}", e),
+                    }),
+                )
+            })?;
 
         let hashed_password = row
             .try_get::<String, _>("password")
-            .map_err(|e| e.to_string())?;
-        let salt: String = row.try_get("salt").map_err(|e| e.to_string())?; // Fetch the salt from the database
-        let expiration_str: String = row.try_get("expiration").map_err(|e| e.to_string())?;
+            .map_err(|e| Custom(Status::InternalServerError, Json(ResponseData {
+                success: false,
+                message: format!("Database error: {}", e),
+            })))?;
+        let salt: String = row.try_get("salt").map_err(|e| Custom(Status::InternalServerError, Json(ResponseData {
+            success: false,
+            message: format!("Database error: {}", e),
+        })))?;
+        let expiration_str: String = row.try_get("expiration").map_err(|e| Custom(Status::InternalServerError, Json(ResponseData {
+            success: false,
+            message: format!("Database error: {}", e),
+        })))?;
 
         // Parse the expiration date from the string in "YYYY-MM-DD" format
-        let expiration_date =
-            NaiveDate::parse_from_str(&expiration_str, "%Y-%m-%d").map_err(|e| e.to_string())?;
+        let expiration_date = NaiveDate::parse_from_str(&expiration_str, "%Y-%m-%d")
+            .map_err(|e| Custom(Status::BadRequest, Json(ResponseData {
+                success: false,
+                message: format!("Date parse error: {}", e),
+            })))?;
 
         // Get the current UTC date
         let now = Utc::now().naive_utc().date();
@@ -231,9 +278,15 @@ mod api {
                 .bind(&login_form.username)
                 .execute(&mut **db)
                 .await
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| Custom(Status::InternalServerError, Json(ResponseData {
+                    success: false,
+                    message: format!("Failed to remove expired admin: {}", e),
+                })))?;
 
-            return Err("Admin account has expired and has been removed.".into());
+            return Err(Custom(Status::Unauthorized, Json(ResponseData {
+                success: false,
+                message: "Admin account has expired and has been removed.".into(),
+            })));
         }
 
         // Combine the input password with the salt and hash it
@@ -255,13 +308,23 @@ mod api {
             .bind(&login_form.username)
             .execute(&mut **db)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| Custom(Status::InternalServerError, Json(ResponseData {
+                success: false,
+                message: format!("Failed to update token: {}", e),
+            })))?;
 
             // Store the token in a cookie
             jar.add(Cookie::new("token", token));
-            Ok(Redirect::to("/adminmenu.html"))
+
+            Ok(Json(ResponseData {
+                success: true,
+                message: "Login successful.".into(),
+            }))
         } else {
-            Err("Invalid username or password.".into())
+            Err(Custom(Status::Unauthorized, Json(ResponseData {
+                success: false,
+                message: "Invalid username or password.".into(),
+            })))
         }
     }
 
@@ -269,15 +332,14 @@ mod api {
         Some("test".into())
     }
 
-    #[get("/adminmenu.html")]
+    #[get("/admin_menu")]
     pub async fn admin_menu(
         jar: &CookieJar<'_>,
         mut db: Connection<RoboDatabase>,
-    ) -> Result<NamedFile, Redirect> {
+    ) -> Result<Json<Value>, String> {
         let token = jar.get("token").map(|c| c.value().to_string());
 
         if let Some(token_value) = token {
-            // Clone `token_value` here so we can reuse it later
             // Validate the token
             let user = rocket_db_pools::sqlx::query("SELECT * FROM admins WHERE token = ?")
                 .bind(&token_value)
@@ -288,24 +350,23 @@ mod api {
                 // Fetch `token_expiration` as a `String` from the row
                 let token_expiration_str: String = match row.try_get("token_expiration") {
                     Ok(expiration) => expiration,
-                    Err(_) => return Err(Redirect::to("/login")), // Redirect on error
+                    Err(_) => return Err("Failed to retrieve token expiration.".to_string()),
                 };
 
                 // Parse the token expiration string into NaiveDateTime
-                let token_expires =
-                    match NaiveDateTime::parse_from_str(&token_expiration_str, "%Y-%m-%d %H:%M:%S")
-                    {
-                        Ok(parsed_date) => parsed_date,
-                        Err(_) => return Err(Redirect::to("/login")), // Redirect if parsing fails
-                    };
+                let token_expires = match NaiveDateTime::parse_from_str(&token_expiration_str, "%Y-%m-%d %H:%M:%S") {
+                    Ok(parsed_date) => parsed_date,
+                    Err(_) => return Err("Failed to parse token expiration.".to_string()),
+                };
 
                 let now = Utc::now().naive_utc(); // Get the current time in naive UTC
 
                 // Check if the token has expired
                 if token_expires > now {
-                    return NamedFile::open("./pages/adminmenu.html")
-                        .await
-                        .map_err(|_| Redirect::to("/api/login"));
+                    return Ok(Json(serde_json::json!({
+                        "success": true,
+                        "message": "Access granted."
+                    })));
                 } else {
                     // If the token is expired, clear it from the database
                     rocket_db_pools::sqlx::query(
@@ -315,11 +376,14 @@ mod api {
                     .execute(&mut **db)
                     .await
                     .ok();
+
+                    return Err("Token has expired.".to_string());
                 }
             }
         }
-        Err(Redirect::to("api/login"))
+        Err("No valid token found.".to_string())
     }
+
 
     #[post("/logout")]
     pub async fn logout(jar: &CookieJar<'_>, mut db: Connection<RoboDatabase>) {
@@ -350,7 +414,7 @@ mod api {
     pub async fn create_admin(
         admin_form: Form<CreateAdmin>,
         mut db: Connection<RoboDatabase>,
-    ) -> Result<Redirect, Status> {
+    ) -> Result<Json<ResponseData>, Status> {
         // Generate a random salt
         let salt: String = rand::thread_rng()
             .sample_iter(&Alphanumeric)
@@ -375,8 +439,17 @@ mod api {
 
         // Handle the result of the database operation
         match result {
-            Ok(_) => Ok(Redirect::to("/adminconfirm.html")), // Redirect to confirmation page
-            Err(_) => Err(Status::InternalServerError),
+            Ok(_) => {
+                // Return a JSON response with a success flag
+                Ok(Json(ResponseData {
+                    success: true,
+                    message: "Admin user created successfully.".to_string(),
+                }))
+            }
+            Err(_) => {
+                // Return a JSON response with an error message
+                Err(Status::InternalServerError)
+            }
         }
     }
 
@@ -386,6 +459,101 @@ mod api {
         hasher.update(password);
         let result = hasher.finalize();
         hex::encode(result) // Return the hex representation of the hash
+    }
+
+    #[derive(Serialize,Deserialize, FromForm)]
+    struct CartItem {
+        name: String,
+        quantity: u32,
+        price: f32,
+    }
+
+    #[allow(private_interfaces)]
+    #[post("/addcart", data="<item>")]
+    pub async fn add_cart(
+        pot: &CookieJar<'_>,
+        item: Json<CartItem>
+    ) -> Json<usize> {
+        
+        // Retrieve the existing cart from the cookie, or initialize an empty cart
+        let mut cart_items: Vec<CartItem> = if let Some(cookie) = pot.get("cart_items") {
+            serde_json::from_str(cookie.value()).unwrap_or_default()
+        } else {
+            vec![]
+        };
+
+        //item to be added, maybe
+        let mut new_item = item.into_inner();
+        // Check if the item already exists in the cart
+        if let Some(existing_item) = cart_items.iter_mut().find(|cart_item| cart_item.name == new_item.name) {
+            // If the item exists, update its quantity
+            existing_item.quantity += new_item.quantity;
+        } else {
+            // If the item does not exist, add it to the cart
+            new_item.quantity = 1;
+            cart_items.push(new_item);
+        }
+
+        // Convert the updated cart to a JSON string
+        let cart_json = serde_json::to_string(&cart_items).unwrap();
+
+        // Store the updated cart in the cookie
+        pot.add(Cookie::new("cart_items", cart_json));
+
+        Json(cart_items.len())
+    }
+
+    #[get("/getcart")]
+    pub async fn get_cart(
+        pot: &CookieJar<'_>
+    ) -> String {
+        // Retrieve the cart items from cookies, or return an empty array if not found
+        let cart_items: Vec<CartItem> = if let Some(cookie) = pot.get("cart_items") {
+            serde_json::from_str(cookie.value()).unwrap_or_default()
+        } else {
+            vec![]
+        };
+
+        // Convert cart items to JSON response
+        serde_json::to_string(&cart_items).unwrap()
+    }
+
+    #[post("/removecart?<name>")]
+    pub async fn remove_cart(
+        pot: &CookieJar<'_>,
+        name: String
+    )-> Json<usize> {
+
+        //let decoded_name = decode(&name)unwrap_or(name);
+
+        // Retrieve the existing cart from the cookie
+        let cart_items: Vec<CartItem> = if let Some(cookie) = pot.get("cart_items") {
+            if let Ok(mut items) = serde_json::from_str::<Vec<CartItem>>(cookie.value()) {
+                //if items.iter.any(|item| item.name == decoded_name){
+
+                
+                // Filter out the item to be removed
+                items.retain(|item| item.name != name);
+    
+                // Update the cookie with the remaining items
+                let updated_cart = serde_json::to_string(&items).unwrap();
+                pot.add(Cookie::new("cart_items", updated_cart));
+                items
+                //}
+            }else{
+                // Retrieve the existing cart from the cookie, or initialize an empty cart
+                let cart_items: Vec<CartItem> = if let Some(cookie) = pot.get("cart_items") {
+                    serde_json::from_str(cookie.value()).unwrap_or_default()
+                }else {
+                    vec![]
+                };
+                cart_items
+            }
+        }else{
+            vec![]
+        };
+        
+        Json(cart_items.len())
     }
 
     #[allow(private_interfaces)]
@@ -534,15 +702,14 @@ mod api {
 
     #[allow(private_interfaces)]
     #[get("/get_websiteinfo")]
-    pub(super) async fn get_websiteinfo(mut db: Connection<RoboDatabase>) -> Json<Vec<Product>> {
+    pub(super) async fn get_websiteinfo(mut db: Connection<RoboDatabase>) -> Json<Vec<Description>> {
         let rows = rocket_db_pools::sqlx::query("select * from website_information")
             .fetch(&mut **db)
             .filter_map(|row| async move {
                 let row = row.ok()?;
-                Some(Product {
+                Some(Description {
                     name: row.try_get("name").ok()?,
                     desc: row.try_get("desc").ok()?,
-                    image: None,
                 })
             })
             .collect()
@@ -563,30 +730,33 @@ mod api {
         };
         // SQL query to update the website information in the database
         let result = rocket_db_pools::sqlx::query(
-        "UPDATE website_information SET desc = CASE name
-            WHEN 'aboutClub1' THEN ?
-            WHEN 'aboutClub2' THEN ?
-            WHEN 'clubHistory' THEN ?
-            WHEN 'clubActivities' THEN ?
-            WHEN 'joinClub' THEN ?
-            WHEN 'contact_email' THEN ?
-            WHEN 'contact_address' THEN ?
-            ELSE desc END
-        WHERE name IN ('aboutClub1', 'aboutClub2', 'clubHistory', 'clubActivities', 'joinClub', 'contact_email', 'contact_address');"
-    )
-    .bind(&info.club_desc1) // for 'aboutClub1'
-    .bind(&info.club_desc2) // for 'aboutClub2'
-    .bind(&info.club_history) // for 'clubHistory'
-    .bind(&info.club_activities) // for 'clubActivities'
-    .bind(&info.join_info) // for 'joinClub'
-    .bind(&info.contact_email) // for 'contact_email'
-    .bind(&info.contact_address) // for 'contact_address'
-    .execute(&mut **db)
-    .await;
+            "UPDATE website_information SET desc = CASE name
+                WHEN 'aboutClub1' THEN ?
+                WHEN 'aboutClub2' THEN ?
+                WHEN 'clubHistory' THEN ?
+                WHEN 'clubActivities' THEN ?
+                WHEN 'joinClub' THEN ?
+                WHEN 'contact_email' THEN ?
+                WHEN 'contact_address' THEN ?
+                ELSE desc END
+            WHERE name IN ('aboutClub1', 'aboutClub2', 'clubHistory', 'clubActivities', 'joinClub', 'contact_email', 'contact_address');"
+        )
+        .bind(&info.club_desc1) // for 'aboutClub1'
+        .bind(&info.club_desc2) // for 'aboutClub2'
+        .bind(&info.club_history) // for 'clubHistory'
+        .bind(&info.club_activities) // for 'clubActivities'
+        .bind(&info.join_info) // for 'joinClub'
+        .bind(&info.contact_email) // for 'contact_email'
+        .bind(&info.contact_address) // for 'contact_address'
+        .execute(&mut **db)
+        .await;
 
         // Handle the result of the database operation
         match result {
-            Ok(_) => Ok(Redirect::to("/adminconfirm.html")),
+            Ok(_) => Ok(Json(serde_json::json!({
+                "success": true,
+                "message": "Website information updated successfully.",
+            }))),
             Err(err) => Err(format!("Database error: {err}")),
         }
     }
@@ -624,6 +794,52 @@ mod api {
             .map_err(|e| format!("Couldn't save file {e}"))?;
         Ok(Json(format!("{name}.{ctype}")))
     }
+
+    #[allow(private_interfaces)]
+    #[get("/get_admins")]
+    pub(super) async fn get_admins(
+        mut db: Connection<RoboDatabase>,
+    ) -> Result<Json<Vec<String>>, Status> {
+        // SQL query to fetch all usernames from the admins table
+        let usernames_query = rocket_db_pools::sqlx::query("SELECT username FROM admins")
+            .fetch_all(&mut **db)
+            .await;
+
+        // Map rows to Vec<String> containing only usernames
+        match usernames_query {
+            Ok(rows) => {
+                let usernames: Vec<String> = rows
+                    .into_iter()
+                    .map(|row| row.get("username"))
+                    .collect();
+                Ok(Json(usernames))
+            }
+            Err(_) => Err(Status::InternalServerError),
+        }
+    }
+
+
+    #[allow(private_interfaces)]
+    #[delete("/delete_admin/<username>")]
+    pub(super) async fn delete_admin(
+        username: &str,
+        mut db: Connection<RoboDatabase>,
+    ) -> Result<Json<ResponseData>, Status> {
+        // SQL query to delete the admin by username
+        let result = rocket_db_pools::sqlx::query("DELETE FROM admins WHERE username = ?")
+            .bind(username)
+            .execute(&mut **db)
+            .await;
+
+        // Handle the result of the database operation
+        match result {
+            Ok(_) => Ok(Json(ResponseData {
+                success: true,
+                message: "Admin user deleted successfully.".to_string(),
+            })),
+            Err(_) => Err(Status::InternalServerError),
+        }
+    }
 }
 
 // Route to set homepage.html on run
@@ -655,6 +871,11 @@ async fn rocket() -> _ {
                 api::mod_product_variant,
                 api::add_product_variant,
                 api::make_image,
+                api::add_cart,
+                api::get_cart,
+                api::remove_cart,
+                api::get_admins,
+                api::delete_admin
             ],
         )
 }

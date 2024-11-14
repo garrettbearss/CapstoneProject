@@ -4,130 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kent State Robotics Club - Checkout</title>
+    <link rel="icon" href="/images/KSR_Donation_A.jpg" type="image/x-icon">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        *, *::before, *::after {
-            box-sizing: inherit;
-        }
-        .navbar {
-            display: flex;
-            align-items: center;
-            background-color: #333;
-            padding: 10px;
-            flex-wrap: wrap;
-        }
-        .navbar img {
-            height: 70px;
-            margin-right: 15px;
-        }
-        .navbar a {
-            color: white;
-            padding: 14px 20px;
-            text-align: center;
-            text-decoration: none;
-            font-size: 17px;
-            white-space: nowrap;
-        }
-        .navbar a:hover {
-            background-color: #ddd;
-            color: black;
-        }
-        .navbar .colorblind-img {
-            height: 45px;
-            width: 45px;
-            margin-left: auto;
-            cursor: pointer;
-        }
-        .content {
-            padding: 20px;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .content h1 {
-            color: #333;
-            font-size: 2.5em;
-        }
-        .content p {
-            color: #555;
-            font-size: 1.2em;
-            margin-bottom: 30px;
-        }
-        .total-info {
-            background-color: #f9f9f9;
-            padding: 20px;
-            margin-bottom: 20px;
-            border: 1px solid #ccc;
-            border-radius: 10px;
-            text-align: left;
-            max-width: 500px;
-            width: 100%;
-        }
-        .total-info p {
-            font-size: 18px;
-            margin: 5px 0;
-        }
-        .payment-form {
-            max-width: 500px;
-            width: 100%;
-            margin: 0 auto;
-            padding: 20px;
-            border: 1px solid #ccc;
-            border-radius: 10px;
-            background-color: #fff;
-        }
-        .payment-form label {
-            font-size: 18px;
-            display: block;
-            margin-bottom: 10px;
-        }
-        .payment-form input {
-            padding: 10px;
-            font-size: 16px;
-            width: 100%;
-            margin-bottom: 20px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-        }
-        .payment-form button {
-            background-color: #002664;
-            color: white;
-            border: none;
-            padding: 15px 20px;
-            font-size: 18px;
-            cursor: pointer;
-            border-radius: 5px;
-            width: 100%;
-        }
-        .payment-form button:hover {
-            background-color: #eaab00;
-        }
-
+        body {font-family: Arial, sans-serif;margin: 0;padding: 0;box-sizing: border-box;}
+        *, *::before, *::after {box-sizing: inherit;}
+        .navbar {display: flex;align-items: center;background-color: #333;padding: 10px;flex-wrap: wrap;}
+        .navbar img {height: 70px;margin-right: 15px;}
+        .navbar a {color: white;padding: 14px 20px;text-align: center;text-decoration: none;font-size: 17px;white-space: nowrap;}
+        .navbar a:hover {background-color: #ddd;color: black;}
+        .navbar .cart-count {background-color: #eaab00;color: black;padding: 5px 10px;border-radius: 50%;font-size: 14px;margin-left: 5px;display: inline-block;}
+        .navbar .colorblind-img {height: 45px;width: 45px;margin-left: auto;cursor: pointer;}
+        .content {padding: 20px;text-align: center;display: flex;flex-direction: column;align-items: center;}
+        .content h1 {color: #333;font-size: 2.5em;}
+        .content p {color: #555;font-size: 1.2em;margin-bottom: 30px;}
+        .total-info {background-color: #f9f9f9;padding: 20px;margin-bottom: 20px;border: 1px solid #ccc;border-radius: 10px;text-align: left;max-width: 500px;width: 100%;}
+        .total-info p {font-size: 18px;margin: 5px 0;}
+        .payment-form {max-width: 500px;width: 100%;margin: 0 auto;padding: 20px;border: 1px solid #ccc;border-radius: 10px;background-color: #fff;}
         @media (max-width: 768px) {
-            .content h1 {
-                font-size: 2em;
-            }
-            .content p {
-                font-size: 1em;
-            }
+            .content h1 {font-size: 2em;}
+            .content p {font-size: 1em;}
         }
-
         @media (max-width: 480px) {
-            .navbar a {
-                font-size: 14px;
-            }
-            .content h1 {
-                font-size: 1.7em;
-            }
-            .content p {
-                font-size: 0.9em;
-            }
+            .navbar a {font-size: 14px;}
+            .content h1 {font-size: 1.7em;}
+            .content p {font-size: 0.9em;}
         }
     </style>
 </head>
@@ -141,132 +41,117 @@
         <a href="donate.html">Donate</a>
         <a href="aboutus.html">About Us</a>
         <a href="adminlogin.html">Admin Login</a>
-        <a href="shoppingcart.html">Shopping Cart</a>
+        <a href="shoppingcart.html">Shopping Cart <span class="cart-count" id="cart-count">0</span></a>
         <img src="images/Colorblind_Off.png" alt="Color Blind Off" class="colorblind-img" id="colorblind-button">
     </div>
 
     <!-- Main Content Section -->
     <div class="content">
-        <h1>Payment Verification</h1>
+        <h1>Checkout</h1>
         <p>Please review your order and enter your payment details below to complete the purchase.</p>
 
         <!-- Placeholder Section for Total Amount and Number of Products -->
         <div class="total-info">
-            <p><strong>Number of Products:</strong> <span id="product-count">Insert Product Count</span></p>
-            <p><strong>Total Amount Due:</strong> <span id="total-amount">Insert total</span></p>
+            <p><strong>Number of Products:</strong> <span id="product-count">0</span></p>
+            <p><strong>Total Amount Due:</strong> $<span id="total-amount">0.00</span></p>
         </div>
 
         <!-- Payment Form -->
         <div class="payment-form">
-            <form id="payment-form">
-                <label for="cardholder-name">Cardholder Name</label>
-                <input type="text" id="cardholder-name" name="cardholder-name" required>
-
-                <!-- Stripe Card Element will be inserted here -->
-                <div id="card-element"></div>
-
-                <!-- Error message for card validation errors -->
-                <div id="card-errors" role="alert"></div>
-
-                <!-- Updated Pay Now Button -->
-                <button type="submit" id="pay-now-button">Pay Now</button>
-            </form>
+            <!-- PayPal Button Container -->
+            <div id="paypal-button-container"></div>
         </div>
     </div>
 
-    <!-- Stripe JavaScript Library -->
-    <script src="https://js.stripe.com/v3/"></script>
-
-    <!-- JavaScript for handling Stripe payment -->
+    <!-- PayPal JavaScript SDK -->
+    <script src="https://www.paypal.com/sdk/js?client-id=AWVWTY_zn8OZtBxVDK3cdkbtRUTouQKZjath8OHPqu1SR4CxXCBh1dbKKg_10eZtnUNiLsYNPpHZn6eP&currency=USD"></script>
     <script>
-        // Create a Stripe client
-        var stripe = Stripe('your-publishable-key-here');
-
-        // Create an instance of Elements
-        var elements = stripe.elements();
-
-        // Custom styling for the card element
-        var style = {
-            base: {
-                fontSize: '16px',
-                color: '#32325d',
-            },
-        };
-
-        // Create an instance of the card Element
-        var card = elements.create('card', {style: style});
-
-        // Add an instance of the card Element into the `card-element` div
-        card.mount('#card-element');
-
-        // Handle real-time validation errors from the card Element
-        card.on('change', function(event) {
-            var displayError = document.getElementById('card-errors');
-            if (event.error) {
-                displayError.textContent = event.error.message;
-            } else {
-                displayError.textContent = '';
-            }
-        });
-
-        // Handle form submission
-        var form = document.getElementById('payment-form');
-        form.addEventListener('submit', function(event) {
-            event.preventDefault();
-
-            stripe.createToken(card).then(function(result) {
-                if (result.error) {
-                    // Inform the user if there was an error
-                    var errorElement = document.getElementById('card-errors');
-                    errorElement.textContent = result.error.message;
-                } else {
-                    // Send the token to your server
-                    stripeTokenHandler(result.token);
-                }
-            });
-        });
-
-        // Submit the token to your server
-        function stripeTokenHandler(token) {
-            // You can send the token to your server for processing or mock the process
-            console.log('Token created:', token);
-
-            // Redirect to the order confirmation page after successful token creation
-            window.location.href = 'orderconfirmation.html';
-        }
-
-        // JavaScript for toggling the colorblind image
         const colorblindButton = document.getElementById('colorblind-button');
+        const cartCountElement = document.getElementById('cart-count');        
 
-        // Function to update the image source from localStorage
         function updateColorblindImage() {
             const savedState = localStorage.getItem('colorblindMode');
             if (savedState) {
-                colorblindButton.setAttribute('src', savedState);  // Set to saved image source
+                colorblindButton.setAttribute('src', savedState);
+            }
+        }
+        colorblindButton.addEventListener('click', function() {
+            const currentSrc = colorblindButton.getAttribute('src');
+            const newSrc = currentSrc === 'images/Colorblind_Off.png' ? 'images/Colorblind_On.png' : 'images/Colorblind_Off.png';
+            colorblindButton.setAttribute('src', newSrc);
+            localStorage.setItem('colorblindMode', newSrc);
+        });
+        window.addEventListener('load', updateColorblindImage);
+
+        async function fetchCartCount() {
+            try {
+                const response = await fetch('/api/getcart');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch cart items');
+                }
+
+                const cartItems = await response.json();
+                const cartCount = cartItems.length;
+
+                updateCartCount(cartCount);
+                localStorage.setItem('cartCount', cartCount);
+            } catch (error) {
+                console.error('Error fetching cart count:', error);
             }
         }
 
-        // Add a click event listener to toggle the image source
-        colorblindButton.addEventListener('click', function() {
-            const currentSrc = colorblindButton.getAttribute('src');
-            let newSrc;
+        function updateCartCount(count) {
+            cartCountElement.textContent = count;
+        }
 
-            // Toggle between 'Colorblind_Off.png' and 'Colorblind_On.png'
-            if (currentSrc === 'images/Colorblind_Off.png') {
-                newSrc = 'images/Colorblind_On.png';
-            } else {
-                newSrc = 'images/Colorblind_Off.png';
-            }
-
-            // Set the new image source
-            colorblindButton.setAttribute('src', newSrc);
-
-            // Store the new state in localStorage
-            localStorage.setItem('colorblindMode', newSrc);
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchCartCount();
+            loadCart();
         });
 
-        // Update the image based on saved state in localStorage on page load
-        window.addEventListener('load', updateColorblindImage);
+        async function loadCart() {
+            try {
+                const response = await fetch('/api/getcart');
+                const cartItems = await response.json();
+                
+                let total = 0;
+                let totalQuantity = 0;
+
+                cartItems.forEach(product => {
+                    totalQuantity += product.quantity;
+                    total += product.price * product.quantity;
+                });
+
+                // Display the total quantity and total price
+                document.getElementById('product-count').textContent = totalQuantity;
+                document.getElementById('total-amount').textContent = total.toFixed(2);
+            } catch (error) {
+                console.error('Error loading cart:', error);
+            }
+        }
+
+        paypal.Buttons({
+            createOrder: function(data, actions) {
+                const totalAmount = document.getElementById('total-amount').innerText;
+                return actions.order.create({
+                    purchase_units: [{
+                        amount: {
+                            value: totalAmount
+                        }
+                    }]
+                });
+            },
+            onApprove: function(data, actions) {
+                return actions.order.capture().then(function(details) {
+                    alert('Transaction completed by ' + details.payer.name.given_name);
+                    window.location.href = 'orderconfirmation.html';
+                });
+            },
+            onError: function(err) {
+                console.error('Error with PayPal transaction', err);
+                alert('There was an error processing your payment. Please try again.');
+            }
+        }).render('#paypal-button-container');
     </script>
 
 </body>

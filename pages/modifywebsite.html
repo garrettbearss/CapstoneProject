@@ -4,106 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kent State Robotics Club - Modify Website Information</title>
+    <link rel="icon" href="/images/KSR_Donation_A.jpg" type="image/x-icon">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        *, *::before, *::after {
-            box-sizing: inherit;
-        }
-        .navbar {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            background-color: #333;
-            padding: 10px;
-        }
-        .navbar img {
-            height: 70px;
-            margin-right: 15px;
-        }
-        .navbar a {
-            color: white;
-            padding: 14px 20px;
-            text-align: center;
-            text-decoration: none;
-            font-size: 17px;
-            white-space: nowrap;
-        }
-        .navbar a:hover {
-            background-color: #ddd;
-            color: black;
-        }
-        .navbar .colorblind-img {
-            height: 45px;
-            width: 45px;
-            margin-left: auto;
-            cursor: pointer;
-        }
-        .content {
-            padding: 20px;
-            text-align: center;
-        }
-        .content h1 {
-            color: #333;
-            font-size: 2em;
-        }
-        .content p {
-            color: #555;
-            font-size: 1.2em;
-        }
-        .info-form {
-            margin: 0 auto;
-            max-width: 90%;
-            padding: 20px;
-            border: 2px solid #ccc;
-            border-radius: 10px;
-            background-color: #f9f9f9;
-        }
-        .info-form label {
-            display: block;
-            margin: 10px 0 5px;
-            font-size: 18px;
-            color: #333;
-        }
-        .info-form input, .info-form textarea {
-            width: 100%;
-            padding: 10px;
-            font-size: 16px;
-            margin-bottom: 20px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-        .submit-button {
-            background-color: #002664;
-            color: white;
-            border: none;
-            padding: 15px;
-            font-size: 18px;
-            cursor: pointer;
-            border-radius: 5px;
-            width: 100%;
-        }
-        .submit-button:hover {
-            background-color: #eaab00;
-        }
-
+        body {font-family: Arial, sans-serif;margin: 0;padding: 0;box-sizing: border-box;}
+        *, *::before, *::after {box-sizing: inherit;}
+        .navbar {display: flex;flex-wrap: wrap;align-items: center;background-color: #333;padding: 10px;}
+        .navbar img {height: 70px;margin-right: 15px;}
+        .navbar a {color: white;padding: 14px 20px;text-align: center;text-decoration: none;font-size: 17px;white-space: nowrap;}
+        .navbar a:hover {background-color: #ddd;color: black;}
+        .navbar .cart-count {background-color: #eaab00;color: black;padding: 5px 10px;border-radius: 50%;font-size: 14px;margin-left: 5px;display: inline-block;}
+        .navbar .colorblind-img {height: 45px;width: 45px;margin-left: auto;cursor: pointer;}
+        .content {padding: 20px;text-align: center;}
+        .content h1 {color: #333;font-size: 2em;}
+        .content p {color: #555;font-size: 1.2em;}
+        .info-form {margin: 0 auto;max-width: 90%;padding: 20px;border: 2px solid #ccc;border-radius: 10px;background-color: #f9f9f9;}
+        .info-form label {display: block;margin: 10px 0 5px;font-size: 18px;color: #333;}
+        .info-form input, .info-form textarea {width: 100%;padding: 10px;font-size: 16px;margin-bottom: 20px;border: 1px solid #ccc;border-radius: 5px;}
+        .submit-button {background-color: #002664;color: white;border: none;padding: 15px;font-size: 18px;cursor: pointer;border-radius: 5px;width: 100%;}
+        .submit-button:hover {background-color: #eaab00;}
         @media (min-width: 768px) {
-            .navbar img {
-                height: 70px;
-            }
-            .content h1 {
-                font-size: 2.5em;
-            }
-            .content p {
-                font-size: 1.5em;
-            }
-            .info-form {
-                max-width: 600px;
-            }
+            .navbar img {height: 70px;}
+            .content h1 {font-size: 2.5em;}
+            .content p {font-size: 1.5em;}
+            .info-form {max-width: 600px;}
         }
     </style>
 </head>
@@ -117,7 +40,7 @@
         <a href="donate.html">Donate</a>
         <a href="aboutus.html">About Us</a>
         <a href="adminlogin.html">Admin Login</a>
-        <a href="shoppingcart.html">Shopping Cart</a>
+        <a href="shoppingcart.html">Shopping Cart <span class="cart-count" id="cart-count">0</span></a>
         <img src="images/Colorblind_Off.png" alt="Color Blind Off" class="colorblind-img" id="colorblind-button">
     </div>
 
@@ -128,7 +51,7 @@
 
         <!-- Form to Modify Website Information -->
         <div class="info-form">
-            <form action="/api/update_websiteinfo" method="post">
+            <form id="websiteInfoForm">
                 <label for="club-desc1">About Club Description #1</label>
                 <textarea id="club-desc1" name="club_desc1" rows="2" placeholder="Enter first club description" required></textarea>
 
@@ -159,9 +82,11 @@
     <script>
         async function fetchUserName() {
             try {
-                const response = await fetch('/api/current_user');
-                if (response.ok) {
-                    const data = await response.json();
+                retryCount = 0;
+                const response1 = await fetch('/api/current_user');
+                const response2 = await fetch('/api/admin_menu');
+                if (response1.ok && response2.ok) {
+                    const data = await response1.json();
                     if(data && data.username){
                         document.getElementById('user-name').innerText = data.username;
                     } else{
@@ -180,7 +105,36 @@
                 }
             }
         }
-        // Fetch data from the server and populate the aboutus page
+        // Function to handle form submission and process response
+        document.getElementById('websiteInfoForm').addEventListener('submit', async function(event) {
+            event.preventDefault(); // Prevent default form submission
+
+            const formData = new FormData(this); // Gather form data
+
+            try {
+                // Send the form data to the server
+                const response = await fetch('/api/update_websiteinfo', {
+                    method: 'POST',
+                    body: new URLSearchParams(formData)
+                });
+
+                // Parse the response JSON
+                const result = await response.json();
+
+                // If the update was successful
+                if (response.ok && result.success) {
+                    window.location.href = '/adminconfirm.html';  // Redirect to confirmation page
+                } else {
+                    // If the update failed, show an error message
+                    alert(result.message || 'An error occurred while updating website info.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again later.');
+            }
+        });
+
+        // Function to fetch and populate current website info (same as before)
         async function fetchModifyWebsiteData() {
             try {
                 const response = await fetch('/api/get_websiteinfo');
@@ -207,7 +161,7 @@
             }
         }
 
-        // Call the fetch function on load
+        // Call the fetch function on load to populate the form with current data
         window.addEventListener('load', fetchModifyWebsiteData);
 
         const colorblindButton = document.getElementById('colorblind-button');
@@ -241,8 +195,35 @@
 
         // Update the image based on saved state in localStorage on page load
         window.addEventListener('load', updateColorblindImage);
+
+        // Function to fetch cart count from server and update it in the navbar
+        async function fetchCartCount() {
+            try {
+                const response = await fetch('/api/getcart');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch cart items');
+                }
+
+                const cartItems = await response.json();
+                const cartCount = cartItems.length;
+
+                // Update the cart count in the navbar and in localStorage
+                updateCartCount(cartCount);
+                localStorage.setItem('cartCount', cartCount);
+            } catch (error) {
+                console.error('Error fetching cart count:', error);
+            }
+        }
+
+        // Load cart count on page load from the server
+        window.addEventListener('DOMContentLoaded', fetchCartCount);
+
+        function updateCartCount(count) {
+            cartCountElement.textContent = count;
+        }
+
         window.addEventListener('load', fetchUserName());
     </script>
- 
+
 </body>
 </html>

@@ -1,102 +1,33 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kent State Robotics Club - Action Confirmation</title>
+    <link rel="icon" href="/images/KSR_Donation_A.jpg" type="image/x-icon">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        *, *::before, *::after {
-            box-sizing: inherit;
-        }
-        .navbar {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            background-color: #333;
-            padding: 10px;
-        }
-        .navbar img {
-            height: 70px;
-            margin-right: 15px;
-        }
-        .navbar a {
-            color: white;
-            padding: 14px 20px;
-            text-align: center;
-            text-decoration: none;
-            font-size: 17px;
-            white-space: nowrap;
-        }
-        .navbar a:hover {
-            background-color: #ddd;
-            color: black;
-        }
-        .navbar .colorblind-img {
-            height: 45px;
-            width: 45px;
-            margin-left: auto;
-            cursor: pointer;
-        }
-        .content {
-            padding: 20px;
-            text-align: center;
-        }
-        .content h1 {
-            color: #333;
-            font-size: 2em;
-        }
-        .content p {
-            color: #555;
-            font-size: 1.2em;
-        }
-        .result {
-            padding: 20px;
-            background-color: #f9f9f9;
-            border: 2px solid #ccc;
-            border-radius: 10px;
-            margin: 0 auto;
-            max-width: 90%;
-        }
-        .result.success {
-            border-color: green;
-            color: green;
-        }
-        .result.failure {
-            border-color: red;
-            color: red;
-        }
-        .back-button {
-            background-color: #002664;
-            color: white;
-            border: none;
-            padding: 15px;
-            font-size: 18px;
-            cursor: pointer;
-            border-radius: 5px;
-            margin-top: 20px;
-        }
-        .back-button:hover {
-            background-color: #eaab00;
-        }
+        body {font-family: Arial, sans-serif;margin: 0;padding: 0;box-sizing: border-box;}
+        *, *::before, *::after {box-sizing: inherit;}
+        .navbar {display: flex;flex-wrap: wrap;align-items: center;background-color: #333;padding: 10px;}
+        .navbar img {height: 70px;margin-right: 15px;}
+        .navbar a {color: white;padding: 14px 20px;text-align: center;text-decoration: none;font-size: 17px;white-space: nowrap;}
+        .navbar a:hover {background-color: #ddd;color: black;}
+        .navbar .cart-count {background-color: #eaab00;color: black;padding: 5px 10px;border-radius: 50%;font-size: 14px;margin-left: 5px;display: inline-block;}
+        .navbar .colorblind-img {height: 45px;width: 45px;margin-left: auto;cursor: pointer;}
+        .content {padding: 20px;text-align: center;}
+        .content h1 {color: #333;font-size: 2em;}
+        .content p {color: #555;font-size: 1.2em;}
+        .result {padding: 20px;background-color: #f9f9f9;border: 2px solid #ccc;border-radius: 10px;margin: 0 auto;max-width: 90%;}
+        .result.success {border-color: green;color: green;}
+        .result.failure {border-color: red;color: red;}
+        .back-button {background-color: #002664;color: white;border: none;padding: 15px;font-size: 18px;cursor: pointer;border-radius: 5px;margin-top: 20px;}
+        .back-button:hover {background-color: #eaab00;}
         @media (min-width: 768px) {
-            .navbar img {
-                height: 70px;
-            }
-            .content h1 {
-                font-size: 2.5em;
-            }
-            .content p {
-                font-size: 1.5em;
-            }
-            .result {
-                max-width: 600px;
-            }
+            .navbar img {height: 70px;}
+            .content h1 {font-size: 2.5em;}
+            .content p {font-size: 1.5em;}
+            .result {max-width: 600px;}
         }
     </style>
 </head>
@@ -110,7 +41,7 @@
         <a href="donate.html">Donate</a>
         <a href="aboutus.html">About Us</a>
         <a href="adminlogin.html">Admin Login</a>
-        <a href="shoppingcart.html">Shopping Cart</a>
+        <a href="shoppingcart.html">Shopping Cart <span class="cart-count" id="cart-count">0</span></a>
         <img src="images/Colorblind_Off.png" alt="Color Blind Off" class="colorblind-img" id="colorblind-button">
     </div>
 
@@ -121,7 +52,7 @@
 
         <!-- Action Result Section -->
         <div id="result-box" class="result success">
-            <p>Website information was successfully updated!</p>
+            <p>Operation on the database was successfully updated!</p>
         </div>
 
         <!-- Back Button -->
@@ -134,9 +65,11 @@
     <script>
         async function fetchUserName() {
             try {
-                const response = await fetch('/api/current_user');
-                if (response.ok) {
-                    const data = await response.json();
+                retryCount = 0;
+                const response1 = await fetch('/api/current_user');
+                const response2 = await fetch('/api/admin_menu');
+                if (response1.ok && response2.ok) {
+                    const data = await response1.json();
                     if(data && data.username){
                         document.getElementById('user-name').innerText = data.username;
                     } else{
@@ -166,17 +99,18 @@
             // Change the style and message for failure
             resultBox.classList.remove('success');
             resultBox.classList.add('failure');
-            resultBox.innerHTML = "<p>There was an error updating the website information. Please try again.</p>";
+            resultBox.innerHTML = "<p>There was an error updating the database. Please try again.</p>";
             actionMessage.textContent = "Your action was not completed.";
         } else {
             // Default success message
             resultBox.classList.add('success');
-            resultBox.innerHTML = "<p>Website information was successfully updated!</p>";
+            resultBox.innerHTML = "<p>Database information was successfully updated!</p>";
             actionMessage.textContent = "Your action was successfully completed.";
         }
 
         // Colorblind Mode Toggle
         const colorblindButton = document.getElementById('colorblind-button');
+        const cartCountElement = document.getElementById('cart-count');
 
         // Function to update the image source from localStorage
         function updateColorblindImage() {
@@ -207,6 +141,40 @@
 
         // Update the image based on saved state in localStorage on page load
         window.addEventListener('load', updateColorblindImage);
+
+        // Function to fetch cart count from server and update it in the navbar
+        async function fetchCartCount() {
+            try {
+                const response = await fetch('/api/getcart');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch cart items');
+                }
+
+                const cartItems = await response.json();
+                const cartCount = cartItems.length;
+
+                // Update the cart count in the navbar and in localStorage
+                updateCartCount(cartCount);
+                localStorage.setItem('cartCount', cartCount);
+            } catch (error) {
+                console.error('Error fetching cart count:', error);
+            }
+        }
+
+        // Load cart count on page load from the server
+        window.addEventListener('DOMContentLoaded', fetchCartCount);
+
+        // Example function to update the cart count dynamically
+        function updateCartCount(count) {
+            cartCountElement.textContent = count;
+        }
+
+        // Update cart count from storage or API (example count set here)
+        window.addEventListener('load', function() {
+            let cartCount = localStorage.getItem('cartCount') || 0;
+            updateCartCount(cartCount);
+        });
+        
         window.addEventListener('load', fetchUserName());
     </script>
 

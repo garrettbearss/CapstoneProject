@@ -1,134 +1,33 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kent State Robotics Club - Products Display</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        *, *::before, *::after {
-            box-sizing: inherit;
-        }
-        .navbar {
-            display: flex;
-            align-items: center;
-            background-color: #333;
-            padding: 10px;
-            flex-wrap: wrap;
-        }
-        .navbar img {
-            height: 70px;
-            margin-right: 15px;
-        }
-        .navbar a {
-            color: white;
-            padding: 14px 20px;
-            text-align: center;
-            text-decoration: none;
-            font-size: 17px;
-            white-space: nowrap;
-        }
-        .navbar a:hover {
-            background-color: #ddd;
-            color: black;
-        }
-        .navbar .colorblind-img {
-            height: 45px;
-            width: 45px;
-            margin-left: auto;
-            cursor: pointer;
-        }
-        .content {
-            padding: 20px;
-            text-align: center;
-        }
-        .content h1 {
-            color: #333;
-            font-size: 2.5em;
-        }
-        .content p {
-            color: #555;
-            font-size: 1.2em;
-        }
-        .product-container {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-top: 40px;
-        }
-        .product-display {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            border: 2px solid #ccc;
-            border-radius: 10px;
-            max-width: 300px;
-            width: 100%;
-            margin: 0 10px;
-            box-sizing: border-box;
-        }
-        .product-display img {
-            width: 100%;
-            max-width: 250px;
-            height: auto;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            margin-bottom: 15px;
-        }
-        .product-description {
-            font-size: 18px;
-            color: #555;
-            margin-bottom: 15px;
-        }
-        .product-price {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 15px;
-        }
-        .buy-button {
-            background-color: #002664;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            font-size: 18px;
-            cursor: pointer;
-            border-radius: 5px;
-        }
-        .buy-button:hover {
-            background-color: #eaab00;
-        }
-
-        @media (min-width: 768px) {
-            .navbar img {
-                height: 70px;
-            }
-            .content h1 {
-                font-size: 2.5em;
-            }
-            .content p {
-                font-size: 1.5em;
-            }
-            .product-container {
-                justify-content: space-around;
-            }
-        }
-
-        @media (min-width: 1024px) {
-            .product-display {
-                max-width: 250px;
-            }
-        }
+    <link rel="icon" href="/images/KSR_Donation_A.jpg" type="image/x-icon">
+    <style> 
+        body {font-family: Arial, sans-serif;margin: 0;padding: 0;box-sizing: border-box;}
+        *, *::before, *::after {box-sizing: inherit;}
+        .navbar {display: flex;align-items: center;background-color: #333;padding: 10px;flex-wrap: wrap;}
+        .navbar img {height: 70px;margin-right: 15px;}
+        .navbar a {color: white;padding: 14px 20px;text-align: center;text-decoration: none;font-size: 17px;white-space: nowrap;}
+        .navbar a:hover {background-color: #ddd;color: black;}
+        .navbar .cart-count {background-color: #eaab00;color: black;padding: 5px 10px;border-radius: 50%;font-size: 14px;margin-left: 5px;display: inline-block;}
+        .navbar .colorblind-img {height: 45px;width: 45px;margin-left: auto;cursor: pointer;}
+        .content {padding: 20px;text-align: center;}
+        .content h1 {color: #333;font-size: 2.5em;}
+        .content p {color: #555;font-size: 1.2em;}
+        .product-container {display: flex;justify-content: center;flex-wrap: wrap;margin-top: 40px;}
+        .product-display {display: flex;flex-direction: column;align-items: center;padding: 20px;border: 2px solid #ccc;border-radius: 10px;max-width: 300px;width: 100%;margin: 0 10px;box-sizing: border-box;}
+        .product-display img {width: 100%;max-width: 250px;height: auto;border: 1px solid #ddd;border-radius: 10px;margin-bottom: 15px;}
+        .product-description {font-size: 18px;color: #555;margin-bottom: 15px;}
+        .product-price {font-size: 18px;font-weight: bold;margin-bottom: 15px;}
+        .buy-button {background-color: #002664;color: white;border: none;padding: 10px 20px;font-size: 18px;cursor: pointer;border-radius: 5px;}
+        .buy-button:hover {background-color: #eaab00;}
     </style>
 </head>
 <body>
-
-    <!-- Navigation Menu Bar -->
+    <!-- Navbar -->
     <div class="navbar">
         <img src="images/KSRLogo_C.png" alt="Kent State Robotics Logo">
         <a href="homepage.html">Homepage</a>
@@ -136,7 +35,7 @@
         <a href="donate.html">Donate</a>
         <a href="aboutus.html">About Us</a>
         <a href="adminlogin.html">Admin Login</a>
-        <a href="shoppingcart.html">Shopping Cart</a>
+        <a href="shoppingcart.html">Shopping Cart <span class="cart-count" id="cart-count">0</span></a>
         <img src="images/Colorblind_Off.png" alt="Color Blind Off" class="colorblind-img" id="colorblind-button">
     </div>
 
@@ -145,47 +44,95 @@
         <h1>Kent State Robotics Club Merchandise</h1>
         <p>Explore our collection of club merchandise.</p>
 
-        <!-- Flexbox Container for Products -->
-        <div class="product-container">
-
-            <!-- Product 1 -->
-            <div class="product-display">
-                <img src="item0.jpg" alt="item0">
-                <div class="product-description">Insert Item Name</div>
-                <div class="product-price">Insert Item Price</div>
-                <button class="buy-button">Add to Cart</button>
-            </div>
-
-            <!-- Product 2 -->
-            <div class="product-display">
-                <img src="item1.jpg" alt="item1">
-                <div class="product-description">Insert Item Name</div>
-                <div class="product-price">Insert Item Price</div>
-                <button class="buy-button">Add to Cart</button>
-            </div>
-
-            <!-- Product 3 -->
-            <div class="product-display">
-                <img src="item2.jpg" alt="item2">
-                <div class="product-description">Insert Item Name</div>
-                <div class="product-price">Insert Item Price</div>
-                <button class="buy-button">Add to Cart</button>
-            </div>
-
-            <!-- Product 4 -->
-            <div class="product-display">
-                <img src="item3.jpg" alt="item3">
-                <div class="product-description">Insert Item Name</div>
-                <div class="product-price">Insert Item Price</div>
-                <button class="buy-button">Add to Cart</button>
-            </div>
-
+        <!-- Product Display -->
+        <div class="product-container" id="product-container">
+            <!-- Products will be loaded here dynamically -->
         </div>
     </div>
 
-    <!-- JavaScript for toggling the colorblind image -->
     <script>
+        // Fetch items from the server and display them
+        async function loadProducts() {
+            try {
+                const response = await fetch('api/getitems');
+                const products = await response.json();
+                
+                const productContainer = document.getElementById('product-container');
+                
+                // Clear any existing content
+                productContainer.innerHTML = '';
+
+                // Populate with new product items
+                products.forEach(product => {
+                    const productDiv = document.createElement('div');
+                    productDiv.classList.add('product-display');
+                    
+                    // Create product elements
+                    const img = document.createElement('img');
+                    img.src = `data:image/png;base64,${product.image}`;
+                    img.alt = product.name;
+
+                    const name = document.createElement('div');
+                    name.classList.add('product-description');
+                    name.textContent = product.name;
+
+                    const desc = document.createElement('p');
+                    desc.textContent = product.desc;
+
+                    const price = document.createElement('div');
+                    price.classList.add('product-price');
+                    price.textContent = `$${(product.price).toFixed(2)}`;  // Display price in dollars
+
+                    const button = document.createElement('button');
+                    button.classList.add('buy-button');
+                    button.textContent = 'Add to Cart';
+                    button.addEventListener('click', (event) => {
+                    const productDiv = event.target.closest('.product-display');
+                    const product = {
+                        id: productDiv.dataset.id,
+                        name: productDiv.querySelector('.product-description').textContent,
+                        quantity: 1,
+                        price: parseFloat(productDiv.querySelector('.product-price').textContent.slice(1))
+                    };
+                    addToCart(product);
+                    });
+
+                    // Append elements to the product div
+                    productDiv.appendChild(img);
+                    productDiv.appendChild(name);
+                    productDiv.appendChild(desc);
+                    productDiv.appendChild(price);   // Added price element
+                    productDiv.appendChild(button);
+
+                    // Append product div to the container
+                    productContainer.appendChild(productDiv);
+                });
+            } catch (error) {
+                console.error('Error loading products:', error);
+            }
+        }
+        // Load products on page load
+        window.addEventListener('DOMContentLoaded', loadProducts);
+
+
+        async function addToCart(product) {
+            try {
+                const response = await fetch('api/addcart', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(product)
+                });
+                if (response.ok) {
+                    const cartCount = await response.json();
+                    updateCartCount(cartCount);
+                }
+            } catch (error) {
+                console.error('Error adding to cart', error);
+            }
+        }
+
         const colorblindButton = document.getElementById('colorblind-button');
+        const cartCountElement = document.getElementById('cart-count');
 
         // Function to update the image source from localStorage
         function updateColorblindImage() {
@@ -217,12 +164,43 @@
         // Update the image based on saved state in localStorage on page load
         window.addEventListener('load', updateColorblindImage);
 
+        async function fetchCartCount() {
+            try {
+                const response = await fetch('/api/getcart');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch cart items');
+                }
+
+                const cartItems = await response.json();
+                const cartCount = cartItems.length;
+
+                // Update the cart count in the navbar and in localStorage
+                updateCartCount(cartCount);
+                localStorage.setItem('cartCount', cartCount);
+            } catch (error) {
+                console.error('Error fetching cart count:', error);
+            }
+        }
+
+        // Load cart count on page load from the server
+        window.addEventListener('DOMContentLoaded', fetchCartCount);
+
+        // Example function to update the cart count dynamically
+        function updateCartCount(count) {
+            cartCountElement.textContent = count;
+        }
+
+        // Update cart count from storage or API (example count set here)
+        window.addEventListener('load', function() {
+            let cartCount = localStorage.getItem('cartCount') || 0;
+            updateCartCount(cartCount);
+        });
+
         // Logout request on page unload
         window.addEventListener("load", async function(event) {
             // Call the logout function
             await fetch("/api/logout", { method: "POST" });
         });
     </script>
-
 </body>
 </html>

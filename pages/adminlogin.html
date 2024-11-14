@@ -4,122 +4,34 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kent State Robotics Club - Admin Login</title>
+    <link rel="icon" href="/images/KSR_Donation_A.jpg" type="image/x-icon">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        *, *::before, *::after {
-            box-sizing: inherit;
-        }
-        .navbar {
-            display: flex;
-            align-items: center;
-            background-color: #333;
-            padding: 10px;
-            flex-wrap: wrap;
-        }
-        .navbar img {
-            height: 70px;
-            margin-right: 15px;
-        }
-        .navbar a {
-            color: white;
-            padding: 14px 20px;
-            text-align: center;
-            text-decoration: none;
-            font-size: 17px;
-            white-space: nowrap;
-        }
-        .navbar a:hover {
-            background-color: #ddd;
-            color: black;
-        }
-        .navbar .colorblind-img {
-            height: 45px;
-            width: 45px;
-            margin-left: auto;
-            cursor: pointer;
-        }
-        .content {
-            padding: 20px;
-            text-align: center;
-        }
-        .content h1 {
-            color: #333;
-            font-size: 2.5em;
-        }
-        .content p {
-            color: #555;
-            font-size: 1.2em;
-            margin-bottom: 30px;
-        }
-        .login-container {
-            display: flex;
-            justify-content: center;
-            margin-top: 40px;
-        }
-        .login-form {
-            border: 2px solid #ccc;
-            border-radius: 10px;
-            padding: 30px;
-            width: 300px;
-            background-color: #f9f9f9;
-            text-align: center;
-        }
-        .login-form input {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-        .login-button {
-            background-color: #002664;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            font-size: 18px;
-            cursor: pointer;
-            border-radius: 5px;
-            width: 100%;
-        }
-        .login-button:hover {
-            background-color: #eaab00;
-        }
-        .error-message {
-            color: red;
-            margin-bottom: 10px;
-        }
-
+        body {font-family: Arial, sans-serif;margin: 0;padding: 0;box-sizing: border-box;}
+        *, *::before, *::after {box-sizing: inherit;}
+        .navbar {display: flex;align-items: center;background-color: #333;padding: 10px;flex-wrap: wrap;}
+        .navbar img {height: 70px;margin-right: 15px;}
+        .navbar a {color: white;padding: 14px 20px;text-align: center;text-decoration: none;font-size: 17px;white-space: nowrap;}
+        .navbar a:hover {background-color: #ddd;color: black;}
+        .navbar .cart-count {background-color: #eaab00;color: black;padding: 5px 10px;border-radius: 50%;font-size: 14px;margin-left: 5px;display: inline-block;}
+        .navbar .colorblind-img {height: 45px;width: 45px;margin-left: auto;cursor: pointer;}
+        .content {padding: 20px;text-align: center;}
+        .content h1 {color: #333;font-size: 2.5em;}
+        .content p {color: #555;font-size: 1.2em;margin-bottom: 30px;}
+        .login-container {display: flex;justify-content: center;margin-top: 40px;}
+        .login-form {border: 2px solid #ccc;border-radius: 10px;padding: 30px;width: 300px;background-color: #f9f9f9;text-align: center;}
+        .login-form input {width: 100%;padding: 10px;margin: 10px 0;border: 1px solid #ccc;border-radius: 5px;}
+        .login-button {background-color: #002664;color: white;border: none;padding: 10px 20px;font-size: 18px;cursor: pointer;border-radius: 5px;width: 100%;}
+        .login-button:hover {background-color: #eaab00;}
+        .error-message {color: red;margin-bottom: 10px;}
         @media (max-width: 768px) {
-            .content h1 {
-                font-size: 2em;
-            }
-            .content p {
-                font-size: 1em;
-            }
-            .login-container {
-                padding: 0 10px;
-            }
-            .login-form {
-                width: 100%;
-                max-width: 400px;
-            }
+            .content h1 {font-size: 2em;}
+            .content p {font-size: 1em;}
+            .login-container {padding: 0 10px;}
+            .login-form {width: 100%;max-width: 400px;}
         }
-
-        @media (max-width: 480px) {
-            .navbar a {
-                font-size: 14px;
-            }
-            .content h1 {
-                font-size: 1.7em;
-            }
-            .content p {
-                font-size: 0.9em;
-            }
+        @media (max-width: 480px) {.navbar a {font-size: 14px;}
+            .content h1 {font-size: 1.7em;}
+            .content p {font-size: 0.9em;}
         }
     </style>
 </head>
@@ -133,7 +45,7 @@
         <a href="donate.html">Donate</a> 
         <a href="aboutus.html">About Us</a> 
         <a href="adminlogin.html">Admin Login</a> 
-        <a href="shoppingcart.html">Shopping Cart</a>
+        <a href="shoppingcart.html">Shopping Cart <span class="cart-count" id="cart-count">0</span></a>
         <img src="images/Colorblind_Off.png" alt="Color Blind Off" class="colorblind-img" id="colorblind-button">
     </div>
 
@@ -156,6 +68,7 @@
     <!-- JavaScript for toggling the colorblind image -->
     <script>
         const colorblindButton = document.getElementById('colorblind-button');
+        const cartCountElement = document.getElementById('cart-count');
 
         // Function to update the image source from localStorage
         function updateColorblindImage() {
@@ -187,32 +100,75 @@
         // Update the image based on saved state in localStorage on page load
         window.addEventListener('load', updateColorblindImage);
 
+        // Function to fetch cart count from server and update it in the navbar
+        async function fetchCartCount() {
+            try {
+                const response = await fetch('/api/getcart');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch cart items');
+                }
+
+                const cartItems = await response.json();
+                const cartCount = cartItems.length;
+
+                // Update the cart count in the navbar and in localStorage
+                updateCartCount(cartCount);
+                localStorage.setItem('cartCount', cartCount);
+            } catch (error) {
+                console.error('Error fetching cart count:', error);
+            }
+        }
+
+        // Load cart count on page load from the server
+        window.addEventListener('DOMContentLoaded', fetchCartCount);
+        
+        // Example function to update the cart count dynamically
+        function updateCartCount(count) {
+            cartCountElement.textContent = count;
+        }
+
+        // Update cart count from storage or API (example count set here)
+        window.addEventListener('load', function() {
+            let cartCount = localStorage.getItem('cartCount') || 0;
+            updateCartCount(cartCount);
+        });
+
         // JavaScript to handle login and redirection
         const form = document.getElementById('loginForm');
         const errorMessage = document.getElementById('error-message');
 
         form.addEventListener('submit', async function(event) {
             event.preventDefault(); // Prevent form submission
-        
+
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
 
-            // Send login request to server
-            const response = await fetch('/api/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body: new URLSearchParams({
-                    username: username,
-                    password: password
-                })
-            });
+            try {
+                // Send login request to server
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: new URLSearchParams({
+                        username: username,
+                        password: password
+                    })
+                });
 
-            if (response.ok) {
-                window.location.href = 'adminmenu.html'; // Redirect to admin menu
-            } else {
-                errorMessage.textContent = 'Invalid username or password.';
+                // Parse the response as JSON
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    // Redirect to admin menu on successful login
+                    window.location.href = 'adminmenu.html';
+                } else {
+                    // Display error message
+                    errorMessage.textContent = 'Invalid username or password.';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                errorMessage.textContent = 'An error occurred. Please try again.';
             }
         });
     </script>
