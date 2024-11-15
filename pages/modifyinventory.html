@@ -103,6 +103,7 @@
         function createAddForm() {
             const form = document.createElement('form');
             form.action = "modifyinventoryaction.html";
+            form.onsubmit = handleAddProduct; //important function for actually adding, right below this form function
             form.method = "post";
 
             form.innerHTML = `
@@ -123,9 +124,45 @@
             return form;
         }
 
+        
+        async function handleAddProduct(event) {
+            event.preventDefault();
+
+            // Get form data
+            const name = document.getElementById('add-name').value;
+            const desc = document.getElementById('add-description').value;
+            const price = parseFloat(document.getElementById('add-price').value);
+            const quantity = parseFloat(document.getElementById('add-quantity').value);
+
+            parseFloat(price.toFixed(2));
+
+            const productData = {name,desc,price,quantity};
+
+            try {
+                // Send a request to the Rust backend
+                const response = await fetch(`api/addproduct`, {
+                    method: 'POST',
+                    headers:{'Content-Type': 'application/json'},
+                    body: JSON.stringify(productData),//sending the whole product to rust function
+                    credentials: 'same-origin'
+                });
+
+                if (response.ok) {
+                    alert('Product added successfully!');
+                } else {
+                    const errorText = await response.text();
+                    alert('Failed to add product: ' + errorText);
+                }
+            } catch (error) {
+                console.error('Error adding product:', error);
+            }
+        }
+
+
         async function createUpdateForm() {
             const form = document.createElement('form');
             form.action = "modifyinventoryaction.html";
+            form.onsubmit = handleUpdateProduct; //function calling on pressing submit is below
             form.method = "post";
 
             // Fetch products from the server
@@ -151,6 +188,9 @@
                 // Add the dropdown and input fields to the form
                 form.innerHTML = `
                     ${productOptions}
+                    <label for="update-description">New Product Description</label>
+                    <input type="text" id="update-description" name="product_description">
+                    
                     <label for="update-price">New Product Price ($)</label>
                     <input type="number" id="update-price" name="product_price" step="0.01">
 
@@ -166,9 +206,43 @@
             return form;
         }
 
+        async function handleUpdateProduct(event) {
+            event.preventDefault();
+
+            // Get form data
+            const name = document.getElementById('update-product').value;
+            const desc = document.getElementById('update-description').value;
+            const price = parseFloat(document.getElementById('update-price').value);
+            const quantity = parseFloat(document.getElementById('update-quantity').value);
+
+            parseFloat(price.toFixed(2));
+
+            const productData = {name,desc,price,quantity};
+
+            try {
+                // Send a request to the Rust backend
+                const response = await fetch(`api/updateproduct`, {
+                    method: 'POST',
+                    headers:{'Content-Type': 'application/json'},
+                    body: JSON.stringify(productData),//sending the whole product to rust function
+                    credentials: 'same-origin'
+                });
+
+                if (response.ok) {
+                    alert('Product updated successfully!');
+                } else {
+                    const errorText = await response.text();
+                    alert('Failed to update product: ' + errorText);
+                }
+            } catch (error) {
+                console.error('Error updating product:', error);
+            }
+        }
+
         function createRemoveForm() {
             const form = document.createElement('form');
             form.action = "modifyinventoryaction.html";
+            form.onsubmit = handleRemoveProduct;
             form.method = "post";
 
             form.innerHTML = `
@@ -178,6 +252,38 @@
                 <button type="submit" class="submit-button">Remove Product</button>
             `;
             return form;
+        }
+
+        async function handleRemoveProduct(event) {
+            event.preventDefault();
+
+            // Get the product ID from the form
+            const productId = document.getElementById('remove-id').value;
+
+            if (!productId) {
+                alert('Please provide a product ID.');
+                return;
+            }
+
+            try {
+                // Send a DELETE request to the backend to remove the product
+                const response = await fetch(`api/removeproduct/${productId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin', // to maintain the session if needed
+                });
+
+                if (response.ok) {
+                    alert('Product removed successfully!');
+                } else {
+                    const errorText = await response.text();
+                    alert('Failed to remove product: ' + errorText);
+                }
+            } catch (error) {
+                console.error('Error removing product:', error);
+                alert('Error removing product. Please try again.');
+            }
+
         }
 
         // Call this function on page load when the action is set to "update"
@@ -212,6 +318,7 @@
                 }
 
                 // Auto-fill the form fields with the product details
+                document.getElementById('update-description').value = selectedProduct.desc;
                 document.getElementById('update-price').value = selectedProduct.price;
                 document.getElementById('update-quantity').value = selectedProduct.quantity;
             } catch (error) {
