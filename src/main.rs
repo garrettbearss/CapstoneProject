@@ -13,7 +13,7 @@ mod api {
     use rand::{distributions::Alphanumeric, Rng};
     use rocket::form::Form;
     use rocket::fs::TempFile;
-    use rocket::futures::TryFutureExt;
+    use crate::rocket::futures::TryFutureExt;
     use rocket::http::Cookie;
     use rocket::http::CookieJar;
     use rocket::http::Status;
@@ -28,9 +28,10 @@ mod api {
     use serde::{Deserialize, Serialize};
     use serde_json::Value;
     use sha2::{Digest, Sha256};
-    use std::path::PathBuf;
     use std::str::FromStr;
     use uuid::Uuid;
+    use base64::Engine;
+    use base64::engine::general_purpose::STANDARD;
 
     #[derive(Database)]
     #[database("db")]
@@ -44,17 +45,28 @@ mod api {
 
     #[derive(Serialize, Deserialize, FromForm)]
     struct Product {
+        id: i32,
         name: String,
         desc: String,
         price: f32,
-        //image: Option<PathBuf>,
+        image: Option<std::string::String>, // Store the image as binary data
         quantity: f32,
     }
+
     impl TryFrom<SqliteRow> for Product {
         type Error = String;
-
+    
         fn try_from(value: SqliteRow) -> Result<Self, Self::Error> {
+            // Attempt to fetch the image blob from the database
+            let image_blob: Option<Vec<u8>> = value.try_get("image").ok();
+            
+            // Convert the image blob to a Base64-encoded string
+            let image_base64 = image_blob.map(|blob| STANDARD.encode(&blob));
+    
             Ok(Self {
+                id: value
+                    .try_get("product_id")
+                    .map_err(|e| format!("Could not get `name`: {e}"))?,
                 name: value
                     .try_get("name")
                     .map_err(|e| format!("Could not get `name`: {e}"))?,
@@ -63,15 +75,8 @@ mod api {
                     .map_err(|e| format!("Could not get `desc`: {e}"))?,
                 price: value
                     .try_get("price")
-                    .map_err(|e| format!("Could not get `price`: {e}"))?, // New field
-                /*image: match value.try_get("image") {
-                    // If there is an error in the path, it treats it as if it was missing
-                    Ok(s) => PathBuf::from_str(s).ok(),
-                    Err(e) => match e {
-                        rocket_db_pools::sqlx::Error::ColumnDecode { .. } => None,
-                        _ => return Err(format!("Could not get `image`: {e}")),
-                    },
-                },*/
+                    .map_err(|e| format!("Could not get `price`: {e}"))?,
+                image: image_base64,
                 quantity: value
                     .try_get("quantity")
                     .map_err(|e| format!("Could not get `quantity`: {e}"))?,
@@ -83,7 +88,6 @@ mod api {
     enum VarTag {
         Size(String),
         Color(String),
-        // For hat
         Fitted(bool),
     }
     impl FromStr for VarTag {
@@ -107,13 +111,13 @@ mod api {
     impl ToString for VarTag {
         fn to_string(&self) -> String {
             match self {
-                VarTag::Size(s) => format!("size{s}"),
-                VarTag::Color(c) => format!("color{c}"),
+                VarTag::Size(s) => format!("{}", s.to_lowercase().capitalize()),
+                VarTag::Color(c) => format!("{}", c.to_lowercase().capitalize()),
                 VarTag::Fitted(f) => {
                     if *f {
-                        format!("fitted")
+                        "Fitted".to_string()
                     } else {
-                        format!("snap")
+                        "Snap".to_string()
                     }
                 }
             }
@@ -122,20 +126,25 @@ mod api {
     #[derive(Serialize, Deserialize)]
     struct ProductVariant {
         quantity: Option<u32>,
-        tags: Vec<VarTag>,
+        tag_name: Vec<VarTag>,
         product: u32,
         varid: u32,
+        image: Option<std::string::String>
     }
 
     impl TryFrom<SqliteRow> for ProductVariant {
         type Error = String;
-
+    
         fn try_from(value: SqliteRow) -> Result<Self, Self::Error> {
+            let image_blob: Option<Vec<u8>> = value.try_get("image").ok();
+            
+            // Convert the image blob to a Base64-encoded string
+            let image_base64 = image_blob.map(|blob| STANDARD.encode(&blob));
             Ok(Self {
                 quantity: value
                     .try_get::<Option<u32>, _>("quantity")
                     .map_err(|e| format!("Could not get `quantity` {e}"))?,
-                tags: value
+                tag_name: value
                     .try_get::<String, _>("tag_name")
                     .map_err(|e| format!("Could not get `tag_name` {e}"))?
                     .split_whitespace()
@@ -147,10 +156,22 @@ mod api {
                 varid: value
                     .try_get("var_id")
                     .map_err(|e| format!("Could not get `var_id` {e}"))?,
-                // name: value
-                //     .try_get("name")
-                //     .map_err(|e| format!("Could not get `name` {e}"))?,
+                image: image_base64,
             })
+        }
+    }
+
+    trait Capitalize {
+        fn capitalize(&self) -> String;
+    }
+    
+    impl Capitalize for String {
+        fn capitalize(&self) -> String {
+            let mut c = self.chars();
+            match c.next() {
+                None => String::new(),
+                Some(f) => f.to_uppercase().chain(c).collect(),
+            }
         }
     }
 
@@ -500,9 +521,11 @@ mod api {
 
     #[derive(Serialize, Deserialize, FromForm)]
     struct CartItem {
-        name: String,
-        quantity: u32,
-        price: f32,
+        product: i32,
+        name: String,           // Common name (product or variant name)
+        quantity: u32,          // Quantity of the item
+        price: f32,             // Price of the item
+        variant: String, // Variant-specific data (if applicable)
     }
 
     #[allow(private_interfaces)]
@@ -515,18 +538,21 @@ mod api {
             vec![]
         };
 
-        //item to be added, maybe
+        // Extract the item to be added
         let mut new_item = item.into_inner();
-        // Check if the item already exists in the cart
-        if let Some(existing_item) = cart_items
-            .iter_mut()
-            .find(|cart_item| cart_item.name == new_item.name)
-        {
+
+        // Check if the item already exists in the cart (considering both name and variant)
+        if let Some(existing_item) = cart_items.iter_mut().find(|cart_item| {
+            // Compare name and variant (check if both are equal, including the variant details)
+            cart_item.name == new_item.name &&
+            // Handle the variant comparison explicitly
+            cart_item.variant == new_item.variant
+        }) {
             // If the item exists, update its quantity
             existing_item.quantity += new_item.quantity;
         } else {
             // If the item does not exist, add it to the cart
-            new_item.quantity = 1;
+            new_item.quantity = 1; // Ensure the quantity starts at 1
             cart_items.push(new_item);
         }
 
@@ -536,7 +562,11 @@ mod api {
         // Store the updated cart in the cookie
         pot.add(Cookie::new("cart_items", cart_json));
 
-        Json(cart_items.len())
+        // Calculate the total number of items (sum of quantities)
+        let total_items = cart_items.iter().map(|item| item.quantity).sum::<u32>();
+
+        // Return the total number of items in the cart
+        Json(total_items as usize)
     }
 
     #[get("/getcart")]
@@ -550,6 +580,22 @@ mod api {
 
         // Convert cart items to JSON response
         serde_json::to_string(&cart_items).unwrap()
+    }
+
+    #[get("/get_cart_count")]
+    pub async fn get_cart_count(pot: &CookieJar<'_>) -> Json<i32> {
+        // Retrieve the cart items from cookies, or return 0 if no cart exists
+        let cart_items: Vec<CartItem> = if let Some(cookie) = pot.get("cart_items") {
+            serde_json::from_str(cookie.value()).unwrap_or_default()
+        } else {
+            vec![]
+        };
+
+        // Calculate the total quantity of items in the cart
+        let total_quantity: i32 = cart_items.iter().map(|item| item.quantity as i32).sum();
+
+        // Return the total quantity as an i32
+        Json(total_quantity)
     }
 
     #[post("/removecart?<name>")]
@@ -581,6 +627,15 @@ mod api {
         };
 
         Json(cart_items.len())
+    }
+
+    #[post("/clearcart")]
+    pub async fn clear_cart(pot: &CookieJar<'_>) -> Json<Result<usize, String>> {
+        // Remove the "cart_items" cookie by setting it to an empty value
+        pot.remove(Cookie::new("cart_items", ""));
+        
+        // Return a success response
+        Json(Ok(1))  // Return 1 for success
     }
 
     #[allow(private_interfaces)]
@@ -722,11 +777,11 @@ mod api {
     }
 
     #[allow(private_interfaces)]
-    #[post("/getvariants", data = "<name>")]
+    #[get("/get_product_variants?<name>")]
     pub(super) async fn get_product_variants(
-        name: &str,
+        name: String,
         mut db: Connection<RoboDatabase>,
-    ) -> Result<Json<Vec<ProductVariant>>, String> {
+    ) -> Result<Json<Vec<serde_json::Value>>, String> {
         let product_id: u32 =
             rocket_db_pools::sqlx::query("select product_id from products where name = $1")
                 .bind(name)
@@ -742,20 +797,71 @@ mod api {
                 .map(|row| {
                     let row = match row {
                         Ok(row) => row,
-                        Err(e) => return Err(format!("Row in product variants not found {e}")),
+                        Err(e) => 
+                        return Err(format!("Row in product variants not found {e}")),
                     };
                     row.try_into()
                 })
                 .collect()
                 .await;
-        let mut prod_vars_ret = vec![];
-        for prodvar in prod_vars {
-            match prodvar {
-                Ok(r) => prod_vars_ret.push(r),
-                Err(e) => return Err(e),
+            let mut formatted_prod_vars = vec![];
+            for prodvar in prod_vars {
+                match prodvar {
+                    Ok(variant) => {
+                        formatted_prod_vars.push(serde_json::json!({
+                            "quantity": variant.quantity,
+                            "tag_name": variant
+                                .tag_name
+                                .iter()
+                                .map(|tag| tag.to_string()) // Format each tag name
+                                .collect::<Vec<String>>()
+                                .join(" "), // Join all tags into a single string
+                            "product": variant.product,
+                            "varid": variant.varid,
+                            "image": variant.image,
+                        }));
+                    }
+                    Err(e) => return Err(e),
+                }
             }
+        // Step 4: Return the transformed variants as JSON
+        Ok(Json(formatted_prod_vars))
+    }
+
+    #[allow(private_interfaces)]
+    #[get("/get_variant_id?<product_id>&<tag_name>")]
+    pub(super) async fn get_variant_id(
+        product_id: u32,
+        tag_name: String,
+        mut db: Connection<RoboDatabase>,
+    ) -> Result<Json<u32>, String> {
+        // Split the tag_name into two strings based on whitespace
+        let tags: Vec<&str> = tag_name.split_whitespace().collect();
+
+        // Ensure there are at least two tags to work with, if not return an error
+        if tags.len() < 2 {
+            return Err("tag_name must contain at least two words".to_string());
         }
-        Ok(Json(prod_vars_ret))
+
+        // Create the formatted tags with wildcards for partial matching
+        let tag1 = format!("%{}%", tags[0]); // First part of the tag
+        let tag2 = format!("%{}%", tags[1]); // Second part of the tag
+
+        // Query to find the var_id for the given product_id and both tag names
+        let var_id: u32 = rocket_db_pools::sqlx::query(
+            "SELECT var_id FROM product_variants WHERE product_id = $1 AND tag_name LIKE $2 AND tag_name LIKE $3",
+        )
+        .bind(product_id)
+        .bind(tag1) // Use the formatted first part of the tag
+        .bind(tag2) // Use the formatted second part of the tag
+        .fetch_one(&mut **db)
+        .await
+        .map_err(|e| format!("Could not find variant for product_id {product_id} and tag_name {tag_name}: {e}"))?
+        .try_get("var_id")
+        .map_err(|e| format!("Could not get var_id from the database: {e}"))?;
+
+        // Return the var_id as a JSON response
+        Ok(Json(var_id))
     }
 
     #[allow(private_interfaces)]
@@ -775,7 +881,7 @@ mod api {
         .bind(variant.quantity)
         .bind(
             variant
-                .tags
+                .tag_name
                 .iter()
                 .map(|e| e.to_string())
                 .reduce(|x, y| x + " " + &y),
@@ -805,7 +911,7 @@ mod api {
         .bind(variant.quantity)
         .bind(
             variant
-                .tags
+                .tag_name
                 .iter()
                 .map(|e| e.to_string())
                 .reduce(|x, y| x + " " + &y),
@@ -957,6 +1063,107 @@ mod api {
             Err(_) => Err(Status::InternalServerError),
         }
     }
+
+    #[derive(Deserialize)]
+    struct Address {
+        address_line_1: String,
+        admin_area_2: String, // City
+        admin_area_1: String, // State
+        postal_code: String,
+        country_code: String,
+    }
+
+    #[derive(Deserialize)]
+    struct Customer {
+        name: String,
+        address: Address,
+        email: String,
+        phone_number: Option<String>,
+    }
+
+    #[derive(Deserialize)]
+    struct OrderedItem {
+        product_id: i32,
+        variant: Option<i32>,
+        quantity: i32,
+    }
+
+    #[derive(Deserialize)]
+    struct OrderRequest {
+        customer: Customer,
+        items: Vec<OrderedItem>,
+    }
+
+    #[allow(private_interfaces)]
+    #[post("/create_order", data = "<order_data>")]
+    pub(super) async fn create_order(
+        order_data: Json<OrderRequest>,
+        mut db: Connection<RoboDatabase>,
+    ) -> Result<Json<i32>, String> {
+        let customer = &order_data.customer;
+        let formatted_address = format!(
+            "{}, {}, {}, {}, {}",
+            customer.address.address_line_1,
+            customer.address.admin_area_2,
+            customer.address.admin_area_1,
+            customer.address.postal_code,
+            customer.address.country_code
+        );
+        let items = &order_data.items;
+
+        // Step 1: Insert customer information and get the generated `cust_id`
+        let cust_id: i32 = rocket_db_pools::sqlx::query(
+            r#"
+            INSERT INTO customers (name, address, email, phone_number)
+            VALUES ($1, $2, $3, $4)
+            RETURNING cust_id
+            "#,
+        )
+        .bind(&customer.name)
+        .bind(&formatted_address)
+        .bind(&customer.email)
+        .bind(&customer.phone_number)
+        .fetch_one(&mut **db)
+        .await
+        .map_err(|e| format!("Failed to insert customer: {}", e))?
+        .try_get("cust_id")
+        .map_err(|e| format!("Failed to get cust_id: {}", e))?;
+
+        // Step 2: Insert a new order and get the generated `order_id`
+        let order_id: i32 = rocket_db_pools::sqlx::query(
+            r#"
+            INSERT INTO orders (cust_id)
+            VALUES ($1)
+            RETURNING order_id
+            "#,
+        )
+        .bind(cust_id)
+        .fetch_one(&mut **db)
+        .await
+        .map_err(|e| format!("Failed to insert order: {}", e))?
+        .try_get("order_id")
+        .map_err(|e| format!("Failed to get order_id: {}", e))?;
+
+        // Step 3: Insert ordered products
+        for item in items {
+            rocket_db_pools::sqlx::query(
+                r#"
+                INSERT INTO ordered_products (product_id, var_id, order_id, quantity)
+                VALUES ($1, $2, $3, $4)
+                "#,
+            )
+            .bind(item.product_id)
+            .bind(item.variant) // This can be NULL
+            .bind(order_id)
+            .bind(item.quantity)
+            .execute(&mut **db)
+            .await
+            .map_err(|e| format!("Failed to insert ordered product: {}", e))?;
+        }
+
+        // Step 4: Return the order_id
+        Ok(Json(order_id)) // Return the generated order_id
+    }
 }
 
 // Route to set homepage.html on run
@@ -990,17 +1197,21 @@ async fn rocket() -> _ {
                 api::admin_menu,
                 api::current_user,
                 api::get_product_variants,
+                api::get_variant_id,
                 api::mod_product_variant,
                 api::add_product_variant,
                 api::make_image,
                 api::add_cart,
                 api::get_cart,
+                api::get_cart_count,
                 api::remove_cart,
                 api::get_admins,
                 api::delete_admin,
                 api::add_product,
                 api::update_product,
                 api::remove_product,
+                api::create_order,
+                api::clear_cart,
             ],
         )
 }

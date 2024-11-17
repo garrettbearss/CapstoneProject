@@ -62,6 +62,7 @@
                 <thead>
                     <tr>
                         <th>Name</th>
+                        <th>VarTag</th>
                         <th>Quantity</th>
                         <th>Price</th>
                         <th>Subtotal</th>
@@ -86,26 +87,34 @@
             try {
                 const response = await fetch('api/getcart');
                 const cartItems = await response.json();
-                
+                console.log(cartItems);
                 let total = 0;
                 let totalQuantity = 0;
                 const tableBody = document.querySelector('#cart-table tbody');
-                
+
                 // Clear any existing content
                 tableBody.innerHTML = '';
 
                 // Populate with new product items
                 cartItems.forEach(product => {
-
                     totalQuantity += product.quantity;
                     total += product.price * product.quantity;
 
-                    //create table outline
+                    // Create table row
                     const row = document.createElement('tr');
 
-                    //create inside table
+                    // Determine the variant display
+                    let variantDisplay = '';
+                    if (product.variant) {
+                        variantDisplay = product.variant;
+                    } else {
+                        variantDisplay = 'N/A'; // Fallback for non-variant items
+                    }
+
+                    // Populate the row
                     row.innerHTML = `
                         <td>${product.name}</td>
+                        <td>${variantDisplay}</td> <!-- Variant Column -->
                         <td>${product.quantity}</td>
                         <td>$${product.price.toFixed(2)}</td>
                         <td>$${(product.quantity * product.price).toFixed(2)}</td>
@@ -115,11 +124,10 @@
                     tableBody.appendChild(row);
                 });
 
-                
                 // Display the total price
                 let totalRow = document.createElement('tr');
                 totalRow.innerHTML = `
-                    <td colspan="2" style="text-align: right; font-weight: bold;">Total: ${totalQuantity}</td>
+                    <td colspan="3" style="text-align: right; font-weight: bold;">Total: ${totalQuantity}</td>
                     <td colspan="2" style="text-align: right; font-weight: bold;">Total: $${total.toFixed(2)}</td>
                 `;
                 tableBody.appendChild(totalRow);
@@ -173,13 +181,12 @@
 
         async function fetchCartCount() {
             try {
-                const response = await fetch('/api/getcart');
+                const response = await fetch('/api/get_cart_count');
                 if (!response.ok) {
                     throw new Error('Failed to fetch cart items');
                 }
 
-                const cartItems = await response.json();
-                const cartCount = cartItems.length;
+                const cartCount = await response.json();
 
                 // Update the cart count in the navbar and in localStorage
                 updateCartCount(cartCount);
