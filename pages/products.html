@@ -51,85 +51,136 @@
     </div>
 
     <script>
-        // Fetch items from the server and display them
         async function loadProducts() {
             try {
-                const response = await fetch('api/getitems');
+                const response = await fetch('/api/getitems');
                 const products = await response.json();
                 
                 const productContainer = document.getElementById('product-container');
-                
-                // Clear any existing content
                 productContainer.innerHTML = '';
 
-                // Populate with new product items
-                products.forEach(product => {
+                for (const product of products) {
                     const productDiv = document.createElement('div');
                     productDiv.classList.add('product-display');
-                    
-                    // Create product elements
+                    productDiv.value = product.id;
+                    // Common elements
                     const img = document.createElement('img');
-                    img.src = `data:image/png;base64,${product.image}`;
+                    if (product.image) {
+                        img.src = `data:image/png;base64,${product.image}`;
+                    } else {
+                        img.alt = 'No Image Available';
+                    }
                     img.alt = product.name;
 
                     const name = document.createElement('div');
                     name.classList.add('product-description');
                     name.textContent = product.name;
 
+                    // Fetch variants for the product
+                    const variants = await fetchProductVariants(product.name);
+
+                    let variantSelect;
+                    if (variants.length > 0) {
+                        // If variants exist, add a dropdown
+                        variantSelect = document.createElement('select');
+                        variantSelect.classList.add('variant-select');
+
+                        variants.forEach(variant => {
+                            const option = document.createElement('option');
+                            option.value = variant.var_id;
+                            option.textContent = variant.tag_name
+                            option.dataset.price = (variant.price || product.price).toFixed(2);
+                            option.dataset.image = variant.image || product.image;
+                            variantSelect.appendChild(option);
+                        });
+
+                        variantSelect.addEventListener('change', (event) => {
+                            const selectedOption = event.target.selectedOptions[0];
+                            img.src = `data:image/png;base64,${selectedOption.dataset.image}`;
+                            price.textContent = `$${parseFloat(selectedOption.dataset.price).toFixed(2)}`;
+                        });
+                    }
+
                     const desc = document.createElement('p');
                     desc.textContent = product.desc;
 
                     const price = document.createElement('div');
                     price.classList.add('product-price');
-                    price.textContent = `$${(product.price).toFixed(2)}`;  // Display price in dollars
+                    price.textContent = `$${(product.price).toFixed(2)}`;
 
                     const button = document.createElement('button');
                     button.classList.add('buy-button');
                     button.textContent = 'Add to Cart';
-                    button.addEventListener('click', (event) => {
-                    const productDiv = event.target.closest('.product-display');
-                    const product = {
-                        id: productDiv.dataset.id,
-                        name: productDiv.querySelector('.product-description').textContent,
-                        quantity: 1,
-                        price: parseFloat(productDiv.querySelector('.product-price').textContent.slice(1))
-                    };
-                    addToCart(product);
-                    });
+                    button.addEventListener('click', () => addToCart(productDiv, price.textContent));
 
-                    // Append elements to the product div
+                    // Append elements to the product div in the new order
                     productDiv.appendChild(img);
                     productDiv.appendChild(name);
+                    if (variantSelect) productDiv.appendChild(variantSelect); // Add dropdown below name
                     productDiv.appendChild(desc);
-                    productDiv.appendChild(price);   // Added price element
+                    productDiv.appendChild(price);
                     productDiv.appendChild(button);
 
-                    // Append product div to the container
                     productContainer.appendChild(productDiv);
-                });
+                }
             } catch (error) {
                 console.error('Error loading products:', error);
             }
         }
-        // Load products on page load
-        window.addEventListener('DOMContentLoaded', loadProducts);
-
-
-        async function addToCart(product) {
+    
+        async function fetchProductVariants(productName) {
             try {
-                const response = await fetch('api/addcart', {
+                const response = await fetch(`/api/get_product_variants?name=${encodeURIComponent(productName)}`);
+                return await response.json();
+            } catch (error) {
+                console.error(`Error fetching variants for product "${productName}":`, error);
+                return [];
+            }
+        }
+    
+        async function addToCart(productDiv, priceText) {
+            // Get the variant select element
+            const variantSelect = productDiv.querySelector('.variant-select');
+            if(variantSelect){
+                const selectedOption = variantSelect.selectedOptions[0];
+                if (selectedOption) {
+                    variant = selectedOption.textContent;
+                }
+            }
+            if(!variantSelect){
+                variant = "N/A";
+            }
+            // Create the product object
+            const product = {
+                product: productDiv.value,
+                name: productDiv.querySelector('.product-description').textContent,
+                price: parseFloat(priceText.slice(1)), // Remove $ and parse price
+                quantity: 1,
+                variant: variant, 
+            };
+
+            // Send the product object to the server
+            try {
+                const response = await fetch('/api/addcart', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(product)
                 });
+
                 if (response.ok) {
                     const cartCount = await response.json();
                     updateCartCount(cartCount);
+                } else {
+                    console.error('Failed to add to cart');
                 }
             } catch (error) {
-                console.error('Error adding to cart', error);
+                console.error('Error adding to cart:', error);
             }
         }
+    
+        // Remaining unchanged functions for cart count, colorblind toggle, etc.
+    
+        window.addEventListener('DOMContentLoaded', loadProducts);
 
         const colorblindButton = document.getElementById('colorblind-button');
         const cartCountElement = document.getElementById('cart-count');
@@ -166,13 +217,12 @@
 
         async function fetchCartCount() {
             try {
-                const response = await fetch('/api/getcart');
+                const response = await fetch('/api/get_cart_count');
                 if (!response.ok) {
                     throw new Error('Failed to fetch cart items');
                 }
 
-                const cartItems = await response.json();
-                const cartCount = cartItems.length;
+                const cartCount = await response.json();
 
                 // Update the cart count in the navbar and in localStorage
                 updateCartCount(cartCount);
