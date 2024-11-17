@@ -42,12 +42,12 @@ mod api {
         desc: String,
     }
 
-    #[derive(Serialize, Deserialize)]
+    #[derive(Serialize, Deserialize, FromForm)]
     struct Product {
         name: String,
         desc: String,
         price: f32,
-        image: Option<PathBuf>,
+        //image: Option<PathBuf>,
         quantity: f32,
     }
     impl TryFrom<SqliteRow> for Product {
@@ -64,14 +64,14 @@ mod api {
                 price: value
                     .try_get("price")
                     .map_err(|e| format!("Could not get `price`: {e}"))?, // New field
-                image: match value.try_get("image") {
+                /*image: match value.try_get("image") {
                     // If there is an error in the path, it treats it as if it was missing
                     Ok(s) => PathBuf::from_str(s).ok(),
                     Err(e) => match e {
                         rocket_db_pools::sqlx::Error::ColumnDecode { .. } => None,
                         _ => return Err(format!("Could not get `image`: {e}")),
                     },
-                },
+                },*/
                 quantity: value
                     .try_get("quantity")
                     .map_err(|e| format!("Could not get `quantity`: {e}"))?,
@@ -559,7 +559,6 @@ mod api {
         // Retrieve the existing cart from the cookie
         let cart_items: Vec<CartItem> = if let Some(cookie) = pot.get("cart_items") {
             if let Ok(mut items) = serde_json::from_str::<Vec<CartItem>>(cookie.value()) {
-                //if items.iter.any(|item| item.name == decoded_name){
 
                 // Filter out the item to be removed
                 items.retain(|item| item.name != name);
@@ -568,7 +567,6 @@ mod api {
                 let updated_cart = serde_json::to_string(&items).unwrap();
                 pot.add(Cookie::new("cart_items", updated_cart));
                 items
-                //}
             } else {
                 // Retrieve the existing cart from the cookie, or initialize an empty cart
                 let cart_items: Vec<CartItem> = if let Some(cookie) = pot.get("cart_items") {
@@ -630,6 +628,97 @@ mod api {
         .await
         .map_err(|e| format!("Database error {e}"))?;
         Ok("Added")
+    }
+
+    #[allow(private_interfaces)]
+    #[post("/addproduct", data = "<new_product>")]
+    pub(super) async fn add_product(
+        new_product: Json<Product>,
+        mut db: Connection<RoboDatabase>,
+        jar: &CookieJar<'_>,
+    ) -> Result<&'static str, String> {
+        match validate_user(jar.get("token").map(|x| x.value()).unwrap_or("")) {
+            Some(_) => {}
+            None => return Err("Not logged in".into()),
+        };
+
+        let mut itemtoadd = new_product.into_inner();
+
+        // Round the price to exactly 2 decimal places
+        let formatted_price = (itemtoadd.price * 100.0).round() / 100.0;
+        itemtoadd.price = formatted_price;
+
+        rocket_db_pools::sqlx::query(
+            "insert into products (name, desc, price, quantity) values ($1, $2 ,$3, $4)",
+        )
+        .bind(&itemtoadd.name)
+        .bind(&itemtoadd.desc)
+        .bind(&itemtoadd.price)
+        .bind(&itemtoadd.quantity)
+        .execute(&mut **db)
+        .await
+        .map_err(|e| format!("Database error {e}"))?;
+        Ok("Added")
+    }
+
+    #[allow(private_interfaces)]
+    #[post("/updateproduct", data = "<updated_product>")]
+    pub(super) async fn update_product(
+        updated_product: Json<Product>,  // Handle the updated form data
+        mut db: Connection<RoboDatabase>,
+        jar: &CookieJar<'_>,
+    ) -> Result<&'static str, String> {
+        match validate_user(jar.get("token").map(|x| x.value()).unwrap_or("")) {
+            Some(_) => {}
+            None => return Err("Not logged in".into()),
+        };
+
+        let product = updated_product.into_inner();
+
+        // Update product in the database
+        let result = rocket_db_pools::sqlx::query(
+            "UPDATE products SET desc = $1, price = $2, quantity = $3 WHERE name = $4"
+        )
+        .bind(&product.desc)
+        .bind(&product.price)
+        .bind(&product.quantity)
+        .bind(&product.name)
+        .execute(&mut **db)
+        .await;
+
+        match result {
+            Ok(_) => Ok("Product updated successfully."),
+            Err(e) => Err(format!("Error updating product: {e}")),
+        }
+    }
+
+    #[allow(private_interfaces)]
+    #[delete("/removeproduct/<product_name>")]
+    pub(super) async fn remove_product(
+        product_name: String,
+        mut db: Connection<RoboDatabase>,
+    ) -> Result<Json<String>, String> {
+        // Perform the delete query to remove the product by name
+        let result = rocket_db_pools::sqlx::query("DELETE FROM products WHERE name = ?")
+            .bind(&product_name) // Bind the product name to the query
+            .execute(&mut **db)
+            .await;
+    
+        match result {
+            Ok(query_result) => {
+                if query_result.rows_affected() > 0 {
+                    // Successfully removed
+                    Ok(Json("Product removed successfully.".to_string()))
+                } else {
+                    // No product found with the given name
+                    Err("Product not found.".to_string())
+                }
+            }
+            Err(e) => {
+                // Return an error if the query failed
+                Err(format!("Failed to remove product: {}", e))
+            }
+        }
     }
 
     #[allow(private_interfaces)]
@@ -908,7 +997,10 @@ async fn rocket() -> _ {
                 api::get_cart,
                 api::remove_cart,
                 api::get_admins,
-                api::delete_admin
+                api::delete_admin,
+                api::add_product,
+                api::update_product,
+                api::remove_product,
             ],
         )
 }
