@@ -50,7 +50,7 @@
         <!-- Placeholder Section for Order Details -->
         <div class="confirmation-info">
             <p><strong>Order Number:</strong> <span class="highlight" id="order-number">#Insert Order Number</span></p>
-            <p><strong>Number of Products:</strong> <span id="product-count">Insert Product Count</span></p>
+            <p><strong>Number of Products:</strong> <span id="total-products">Insert Product Count</span></p>
             <p><strong>Total Amount Paid:</strong> <span id="total-amount">Insert Total Amount</span></p>
         </div>
 
@@ -59,6 +59,17 @@
 
     <!-- JavaScript for toggling the colorblind image -->
     <script>
+        // Parse URL parameters
+        const params = new URLSearchParams(window.location.search);
+        const orderNumber = params.get('orderNumber');
+        const totalProducts = params.get('totalProducts');
+        const totalAmount = params.get('totalAmount');
+
+        // Display the order details
+        document.getElementById('order-number').textContent = orderNumber;
+        document.getElementById('total-products').textContent = totalProducts;
+        document.getElementById('total-amount').textContent = `$${totalAmount}`;
+
         const colorblindButton = document.getElementById('colorblind-button');
         const cartCountElement = document.getElementById('cart-count');
 
@@ -95,13 +106,12 @@
         // Function to fetch cart count from server and update it in the navbar
         async function fetchCartCount() {
             try {
-                const response = await fetch('/api/getcart');
+                const response = await fetch('/api/get_cart_count');
                 if (!response.ok) {
                     throw new Error('Failed to fetch cart items');
                 }
 
-                const cartItems = await response.json();
-                const cartCount = cartItems.length;
+                const cartCount = await response.json();
 
                 // Update the cart count in the navbar and in localStorage
                 updateCartCount(cartCount);
