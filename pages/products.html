@@ -53,7 +53,7 @@
     <script>
         async function loadProducts() {
             try {
-                const response = await fetch('/api/getitems');
+                const response = await fetch('/api/get_items');
                 const products = await response.json();
                 
                 const productContainer = document.getElementById('product-container');
