@@ -172,13 +172,12 @@
         // Function to fetch cart count from server and update it in the navbar
         async function fetchCartCount() {
             try {
-                const response = await fetch('/api/getcart');
+                const response = await fetch('/api/get_cart_count');
                 if (!response.ok) {
                     throw new Error('Failed to fetch cart items');
                 }
 
-                const cartItems = await response.json();
-                const cartCount = cartItems.length;
+                const cartCount = await response.json();
 
                 // Update the cart count in the navbar and in localStorage
                 updateCartCount(cartCount);
