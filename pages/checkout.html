@@ -21,14 +21,12 @@
         .total-info p {font-size: 18px;margin: 5px 0;}
         .payment-form {max-width: 500px;width: 100%;margin: 0 auto;padding: 20px;border: 1px solid #ccc;border-radius: 10px;background-color: #fff;}
         @media (max-width: 768px) {
-            .content h1 {font-size: 2em;}
-            .content p {font-size: 1em;}
-        }
+            .content h1 {font-size: 2em;} 
+            .content p {font-size: 1em;}}
         @media (max-width: 480px) {
-            .navbar a {font-size: 14px;}
-            .content h1 {font-size: 1.7em;}
-            .content p {font-size: 0.9em;}
-        }
+            .navbar a {font-size: 14px;} 
+            .content h1 {font-size: 1.7em;} 
+            .content p {font-size: 0.9em;}}
     </style>
 </head>
 <body>
@@ -67,32 +65,34 @@
     <script src="https://www.paypal.com/sdk/js?client-id=AWVWTY_zn8OZtBxVDK3cdkbtRUTouQKZjath8OHPqu1SR4CxXCBh1dbKKg_10eZtnUNiLsYNPpHZn6eP&currency=USD"></script>
     <script>
         const colorblindButton = document.getElementById('colorblind-button');
-        const cartCountElement = document.getElementById('cart-count');        
-
+        const cartCountElement = document.getElementById('cart-count');  
+        
         function updateColorblindImage() {
             const savedState = localStorage.getItem('colorblindMode');
             if (savedState) {
                 colorblindButton.setAttribute('src', savedState);
             }
         }
+
         colorblindButton.addEventListener('click', function() {
             const currentSrc = colorblindButton.getAttribute('src');
             const newSrc = currentSrc === 'images/Colorblind_Off.png' ? 'images/Colorblind_On.png' : 'images/Colorblind_Off.png';
             colorblindButton.setAttribute('src', newSrc);
             localStorage.setItem('colorblindMode', newSrc);
         });
+
         window.addEventListener('load', updateColorblindImage);
 
         async function fetchCartCount() {
             try {
-                const response = await fetch('/api/getcart');
+                const response = await fetch('/api/get_cart_count');
                 if (!response.ok) {
                     throw new Error('Failed to fetch cart items');
                 }
 
-                const cartItems = await response.json();
-                const cartCount = cartItems.length;
+                const cartCount = await response.json();
 
+                // Update the cart count in the navbar and in localStorage
                 updateCartCount(cartCount);
                 localStorage.setItem('cartCount', cartCount);
             } catch (error) {
@@ -103,11 +103,6 @@
         function updateCartCount(count) {
             cartCountElement.textContent = count;
         }
-
-        window.addEventListener('DOMContentLoaded', () => {
-            fetchCartCount();
-            loadCart();
-        });
 
         async function loadCart() {
             try {
@@ -122,7 +117,6 @@
                     total += product.price * product.quantity;
                 });
 
-                // Display the total quantity and total price
                 document.getElementById('product-count').textContent = totalQuantity;
                 document.getElementById('total-amount').textContent = total.toFixed(2);
             } catch (error) {
@@ -130,20 +124,111 @@
             }
         }
 
+        async function sendOrder(details, cartItems) {
+            try {
+                // Fetch the correct variant ID for each cart item
+                const updatedCartItems = await Promise.all(
+                    cartItems.map(async (product) => {
+                        try {
+                            const response = await fetch(`/api/get_variant_id?product_id=${product.product}&tag_name=${encodeURIComponent(product.variant)}`);
+                            if (!response.ok) {
+                                console.warn(`No variant found for product ${product.product} with variant ${product.variant}. Setting variant to null.`);
+                                return {
+                                    product_id: product.product,
+                                    variant: null, // Set variant to null if no variant ID is found
+                                    quantity: product.quantity,
+                                };
+                            }
+
+                            const varId = await response.json();
+                            console.log(varId);
+                            return {
+                                product_id: product.product,
+                                variant: varId, // Use the retrieved var_id
+                                quantity: product.quantity,
+                            };
+                        } catch (error) {
+                            console.error(`Error fetching variant ID for product ${product.product}:`, error);
+                            // If an error occurs, fallback to setting variant as null
+                            return {
+                                product_id: product.product,
+                                variant: null,
+                                quantity: product.quantity,
+                            };
+                        }
+                    })
+                );
+
+                // Prepare order data with updated cart items
+                const orderData = {
+                    customer: {
+                        name: details.payer.name.given_name + ' ' + details.payer.name.surname,
+                        email: details.payer.email_address,
+                        address: details.purchase_units[0].shipping.address,
+                        phone_number: details.payer.phone,
+                    },
+                    items: updatedCartItems, // Use updated cart items with correct or null var_id
+                };
+
+                // Send the order data to the server
+                const response = await fetch('/api/create_order', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(orderData),
+                });
+
+                const order_id = await response.json();
+                console.log(order_id);
+                if (response.ok) {
+                    // Extract required information
+                    const orderNumber = order_id;
+                    const totalProducts = document.getElementById('product-count').innerText;
+                    const totalAmount = document.getElementById('total-amount').innerText;
+
+                    const clearCartResponse = await fetch('/api/clearcart', { method: 'POST' });
+                    if (clearCartResponse.ok) {
+                        console.log("Cart cleared successfully.");
+                    } else {
+                        console.error("Failed to clear cart.");
+                    }
+
+                    // Pass the information to the confirmation page via URL parameters
+                    const queryParams = new URLSearchParams({
+                        orderNumber,
+                        totalProducts,
+                        totalAmount,
+                    });
+                    
+                    window.location.href = `orderconfirmation.html?${queryParams.toString()}`;
+                } else {
+                    alert('Error creating order. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error sending order:', error);
+            }
+        }
+
+
         paypal.Buttons({
             createOrder: function(data, actions) {
                 const totalAmount = document.getElementById('total-amount').innerText;
                 return actions.order.create({
                     purchase_units: [{
-                        amount: {
-                            value: totalAmount
-                        }
+                        amount: { value: totalAmount }
                     }]
                 });
             },
             onApprove: function(data, actions) {
-                return actions.order.capture().then(function(details) {
-                    window.location.href = 'orderconfirmation.html';
+                return actions.order.capture().then(async function(details) {
+                    try {
+                        const response = await fetch('/api/getcart');
+                        const cartItems = await response.json();
+                        await sendOrder(details, cartItems);
+                    } catch (error) {
+                        console.error('Error capturing cart items:', error);
+                    }
                 });
             },
             onError: function(err) {
@@ -151,6 +236,11 @@
                 alert('There was an error processing your payment. Please try again.');
             }
         }).render('#paypal-button-container');
+
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchCartCount();
+            loadCart();
+        });
     </script>
 
 </body>
