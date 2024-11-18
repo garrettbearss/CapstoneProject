@@ -1512,6 +1512,8 @@ async fn rocket() -> _ {
                 api::get_all_customers,
                 api::get_product_details,
                 api::get_variant_details,
+                api::get_customer_orders,
+                api::get_all_customers,
             ],
         )
 }
