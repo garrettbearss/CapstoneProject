@@ -98,7 +98,7 @@
             customers.forEach(customer => {
                 html += `<div style="border: 1px solid #ccc; margin: 10px; padding: 10px;">
                             <p>Name: ${customer.name}</p>
-                            <p>Address: ${customer.address}</p>
+                            <p>Address: ${customer.address.address_line_1}, ${customer.address.admin_area_2}, ${customer.address.admin_area_1}, ${customer.address.postal_code}, ${customer.address.country_code}</p>
                             <p>Email: ${customer.email}</p>
                             <p>Phone: ${customer.phone_number}</p>
                             <button onclick="fetchCustomerOrders(${customer.cust_id}, '${customer.name}')" class="check-button">View Orders</button>
@@ -134,7 +134,7 @@
                                 <h5>Products:</h5>
                                 <ul>`;
                     order.products.forEach(product => {
-                        html += `<li>Product ID: ${product.product_id}, Variant ID: ${product.var_id}, Quantity: ${product.quantity}</li>`;
+                        html += `<li>Product ID: ${product.product_id}, Variant ID: ${product.variant}, Quantity: ${product.quantity}</li>`;
                     });
                     html += `</ul></div>`;
                 });
