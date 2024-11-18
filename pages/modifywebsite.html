@@ -8,6 +8,7 @@
     <style>
         body {font-family: Arial, sans-serif;margin: 0;padding: 0;box-sizing: border-box;}
         *, *::before, *::after {box-sizing: inherit;}
+        body.colorblind {filter: grayscale(100%);}
         .navbar {display: flex;flex-wrap: wrap;align-items: center;background-color: #333;padding: 10px;}
         .navbar img {height: 70px;margin-right: 15px;}
         .navbar a {color: white;padding: 14px 20px;text-align: center;text-decoration: none;font-size: 17px;white-space: nowrap;}
@@ -85,24 +86,31 @@
                 retryCount = 0;
                 const response1 = await fetch('/api/current_user');
                 const response2 = await fetch('/api/admin_menu');
-                if (response1.ok && response2.ok) {
+                
+                if (response1.ok) {
                     const data = await response1.json();
-                    if(data && data.username){
-                        document.getElementById('user-name').innerText = data.username;
-                    } else{
-                        window.location.href = 'adminlogin.html'
+                    if (data && data.username) {
+                        // User is authenticated, update the username on the page
+                        //document.getElementById('user-name').innerText = data.username;
+                    } else {
+                        // If no username, the token might be invalid, redirect to login
+                        window.location.href = 'adminlogin.html';
                     }
                 } else {
-                    console.error("Failed to fetch user's name");
-                    window.location.href = 'adminlogin.html'
-                }
-            } catch (error) {
-                console.error("Error fetching user's name:", error);
-                if (retryCount < 3) { // Retry a few times in case of temporary errors
-                    setTimeout(() => fetchUserName(retryCount + 1), 1000); // Retry after 1 second
-                } else {
+                    // Handle invalid token or failed authentication
+                    console.error("Failed to fetch user's name: Unauthorized");
                     window.location.href = 'adminlogin.html';
                 }
+
+                if (!response2.ok) {
+                    // Handle any issues with admin menu fetch (optional)
+                    console.error("Failed to fetch admin menu");
+                }
+
+            } catch (error) {
+                // If an error occurs while fetching, redirect to login
+                console.error("Error fetching user's name:", error);
+                window.location.href = 'adminlogin.html';
             }
         }
         // Function to handle form submission and process response
@@ -165,12 +173,15 @@
         window.addEventListener('load', fetchModifyWebsiteData);
 
         const colorblindButton = document.getElementById('colorblind-button');
-
+        const cartCountElement = document.getElementById('cart-count');
         // Function to update the image source from localStorage
         function updateColorblindImage() {
             const savedState = localStorage.getItem('colorblindMode');
             if (savedState) {
                 colorblindButton.setAttribute('src', savedState);  // Set to saved image source
+                if (savedState === 'images/Colorblind_On.png') {
+                    document.body.classList.add('colorblind'); // Apply grayscale filter
+                }
             }
         }
 
@@ -182,8 +193,10 @@
             // Toggle between 'Colorblind_Off.png' and 'Colorblind_On.png'
             if (currentSrc === 'images/Colorblind_Off.png') {
                 newSrc = 'images/Colorblind_On.png';
+                document.body.classList.add('colorblind'); // Apply grayscale filter
             } else {
                 newSrc = 'images/Colorblind_Off.png';
+                document.body.classList.remove('colorblind'); // Remove grayscale filter
             }
 
             // Set the new image source

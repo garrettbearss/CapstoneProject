@@ -8,6 +8,7 @@
     <style>
         body {font-family: Arial, sans-serif;margin: 0;padding: 0;box-sizing: border-box;}
         *, *::before, *::after {box-sizing: inherit;}
+        body.colorblind {filter: grayscale(100%);}
         .navbar {display: flex;flex-wrap: wrap;align-items: center;background-color: #333;padding: 10px;}
         .navbar img {height: 70px;margin-right: 15px;}
         .navbar a {color: white;padding: 14px 20px;text-align: center;text-decoration: none;font-size: 17px;white-space: nowrap;}
@@ -51,7 +52,6 @@
 
         <!-- Inventory Modification Form -->
         <div class="inventory-form">
-            <form action="modifyinventoryaction.html" method="post">
                 <!-- Dropdown for selecting action -->
                 <label for="action">Select Action</label>
                 <select id="action" onchange="changeForm(this.value)">
@@ -70,259 +70,418 @@
 
     <!-- JavaScript for toggling the colorblind image -->
     <script>
-        async function changeForm(action) {
+        function changeForm(action) {
             const formContainer = document.getElementById('form-container');
-
-            // Clear the previous content
             formContainer.innerHTML = '';
 
-            let form;
-            switch (action) {
-                case 'add':
-                    form = createAddForm();
-                    break;
-                case 'update':
-                    form = await createUpdateForm(); // Await needed for async function
-                    break;
-                case 'remove':
-                    form = createRemoveForm();
-                    break;
-                default:
-                    console.error("Unknown action:", action);
-                    return;
-            }
+            if (action === 'add') {
+                formContainer.innerHTML = `
+                    <form id="add-product-form" onsubmit="handleAddProduct(event)">
+                        <h2>Add Product</h2>
+                        <label for="product-name">Product Name</label>
+                        <input type="text" id="product-name" name="product_name" required>
+                        
+                        <label for="product-description">Product Description</label>
+                        <input type="text" id="product-description" name="product_description" required>
+                        
+                        <label for="product-price">Product Price</label>
+                        <input type="number" id="product-price" name="product_price" step="0.01" required>
+                        
+                        <label for="has-variants">Does the product have variants?</label>
+                        <select id="has-variants" onchange="toggleVariantFields(this.value)">
+                            <option value="">Select an option</option>
+                            <option value="yes">Yes</option>
+                            <option value="no">No</option>
+                        </select>
 
-            // Ensure the form is a valid Node before appending
-            if (form instanceof HTMLElement) {
-                formContainer.appendChild(form);
+                        <div id="variant-fields" style="display: none;">
+                            <label for="variant-count">Number of Variants</label>
+                            <input type="number" id="variant-count" name="variant_count" onchange="generateVariantInputs(this.value)">
+                            <div id="variant-inputs"></div>
+                        </div>
+
+                        <div id="non-variant-fields" style="display: none;">
+                            <label for="product-quantity">Product Quantity</label>
+                            <input type="number" id="product-quantity" name="product_quantity">
+                            <label for="product-image">Product Image</label>
+                            <input type="file" id="product-image" name="product_image">
+                        </div>
+
+                        <button type="submit" class="submit-button">Add Product</button>
+                    </form>
+                `;
+            }
+            if (action === 'update') {
+                formContainer.innerHTML = `
+                    <form id="update-product-form" onsubmit="handleUpdateProduct(event)">
+                        <h2>Update Product</h2>
+                        <label for="update-product">Select Product</label>
+                        <select id="update-product" name="product_id" onchange="populateProductDetails(this.value)" required>
+                            <option value="">Select a product</option>
+                        </select>
+
+                        <div id="product-details">
+                            <label for="update-description">New Product Description</label>
+                            <input type="text" id="update-description" name="product_description">
+
+                            <label for="update-price">New Product Price ($)</label>
+                            <input type="number" id="update-price" name="product_price" step="0.01">
+
+                            <label for="update-quantity">New Product Quantity</label>
+                            <input type="number" id="update-quantity" name="product_quantity">
+
+                            <label for="update-variant">Select Variant</label>
+                            <select id="update-variant" name="variant_id" onchange="populateVariantDetails(this.value)">
+                                <option value="">Select a variant</option>
+                            </select>
+
+                            <div id="variant-details" style="display: none;">
+                                <h3>Modify Variant</h3>
+
+                                <label for="update-variant-quantity">Variant Quantity</label>
+                                <input type="number" id="update-variant-quantity" name="variant_quantity">
+
+                                <label for="update-tag-name">Tag Name</label>
+                                <input type="text" id="update-tag-name" name="tag_name">
+
+                                <label for="update-variant-image">Variant Image</label>
+                                <input type="file" id="update-variant-image" name="variant_image">
+                            </div>
+
+                            <button type="submit" class="submit-button">Update Product</button>
+                        </div>
+                    </form>
+                `;
+
+                // Fetch products and populate the product dropdown
+                fetch('/api/get_items')
+                    .then(response => response.json())
+                    .then(products => {
+                        const productSelect = document.getElementById('update-product');
+                        products.forEach(product => {
+                            const option = document.createElement('option');
+                            option.value = product.name;
+                            option.textContent = product.name;
+                            productSelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error loading products:', error);
+                    });
+            }
+            if(action === 'remove'){
+                formContainer.innerHTML = `
+                    <form id="remove-product-form" onsubmit="handleRemoveProduct(event)">
+                        <h2>Remove Product</h2>
+                        <label for="remove-product">Select Product</label>
+                        <select id="remove-product" name="product_name" required>
+                            <option value="">Select a product</option>
+                        </select>
+                        <button type="submit" class="submit-button">Remove Product</button>
+                    </form>
+                `;
+
+                // Fetch the list of products and populate the dropdown
+                fetch('/api/get_items')
+                    .then(response => response.json())
+                    .then(products => {
+                        const productSelect = document.getElementById('remove-product');
+                        products.forEach(product => {
+                            const option = document.createElement('option');
+                            option.value = product.name; // Assuming 'name' is the product identifier
+                            option.textContent = product.name; // Use product name for display
+                            productSelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error loading products:', error);
+                    });
+            }
+        }
+
+        // Populate product details and fetch variants for the selected product
+        function populateProductDetails(productName) {
+            if (!productName) return;  // Don't proceed if no product is selected
+
+            // Fetch product details based on selected product name
+            fetch(`/api/get_product_details?name=${productName}`)
+                .then(response => response.json())
+                .then(product => {
+                    // Populate the description, price, and quantity fields
+                    document.getElementById('update-description').value = product.desc || '';
+                    document.getElementById('update-price').value = product.price || '';
+                    document.getElementById('update-quantity').value = product.quantity || '';
+
+                    // Fetch product variants based on selected product name
+                    fetch(`/api/get_product_variants?name=${productName}`)
+                        .then(response => response.json())
+                        .then(variants => {
+                            const variantSelect = document.getElementById('update-variant');
+                            variantSelect.innerHTML = '<option value="">Select a variant</option>'; // Clear previous options
+
+                            // Populate variants dropdown
+                            variants.forEach(variant => {
+                                const option = document.createElement('option');
+                                option.value = variant.varid;
+                                option.textContent = `${variant.tag_name} (Quantity: ${variant.quantity})`;
+                                variantSelect.appendChild(option);
+                            });
+                        })
+                        .catch(error => {
+                            console.error('Error loading variants:', error);
+                        });
+                })
+                .catch(error => {
+                    console.error('Error fetching product details:', error);
+                });
+        }
+
+        // Populate variant details when a variant is selected
+        function populateVariantDetails(variantId) {
+            if (!variantId) return;
+
+            fetch(`/api/get_variant_details?name=${variantId}`)
+                .then(response => response.json())
+                .then(variant => {
+                    document.getElementById('variant-details').style.display = 'block';
+                    document.getElementById('update-variant-quantity').value = variant.quantity || '';
+                    document.getElementById('update-tag-name').value = variant.tag_name || '';
+                    document.getElementById('update-variant-image').value = ''; // Image cannot be directly populated
+                })
+                .catch(error => {
+                    console.error('Error fetching variant details:', error);
+                });
+        }
+
+        function toggleVariantFields(hasVariants) {
+            const variantFields = document.getElementById('variant-fields');
+            const nonVariantFields = document.getElementById('non-variant-fields');
+            if (hasVariants === 'yes') {
+                variantFields.style.display = 'block';
+                nonVariantFields.style.display = 'none';
             } else {
-                console.error("Form is not a valid HTML element:", form);
+                variantFields.style.display = 'none';
+                nonVariantFields.style.display = 'block';
             }
         }
 
-        function createAddForm() {
-            const form = document.createElement('form');
-            form.action = "modifyinventoryaction.html";
-            form.onsubmit = handleAddProduct; //important function for actually adding, right below this form function
-            form.method = "post";
-
-            form.innerHTML = `
-                <label for="add-name">Product Name</label>
-                <input type="text" id="add-name" name="product_name" required>
-                
-                <label for="add-description">Product Description</label>
-                <input type="text" id="add-description" name="product_description" required>
-                
-                <label for="add-price">Product Price ($)</label>
-                <input type="number" id="add-price" name="product_price" step="0.01" required>
-                
-                <label for="add-quantity">Product Quantity</label>
-                <input type="number" id="add-quantity" name="product_quantity" required>
-                
-                <button type="submit" class="submit-button">Add Product</button>
-            `;
-            return form;
+        function generateVariantInputs(count) {
+            const container = document.getElementById('variant-inputs');
+            container.innerHTML = '';
+            for (let i = 0; i < count; i++) {
+                container.innerHTML += `
+                    <h3>Variant ${i + 1}</h3>
+                    <label for="variant-quantity-${i}">Variant Quantity</label>
+                    <input type="number" id="variant-quantity-${i}" name="variant_quantity_${i}" required>
+                    <label for="variant-tag-${i}">Variant Tag Name</label>
+                    <input type="text" id="variant-tag-${i}" name="variant_tag_${i}" required>
+                    <label for="variant-image-${i}">Variant Image</label>
+                    <input type="file" id="variant-image-${i}" name="variant_image_${i}">
+                `;
+            }
         }
-
         
         async function handleAddProduct(event) {
             event.preventDefault();
 
             // Get form data
-            const name = document.getElementById('add-name').value;
-            const desc = document.getElementById('add-description').value;
-            const price = parseFloat(document.getElementById('add-price').value);
-            const quantity = parseFloat(document.getElementById('add-quantity').value);
+            const name = document.getElementById('product-name').value;
+            const desc = document.getElementById('product-description').value;
+            const price = parseFloat(document.getElementById('product-price').value);
+            const hasVariants = document.getElementById('has-variants').value === 'yes';
+            console.log("Has Variants:", hasVariants);
 
-            parseFloat(price.toFixed(2));
-
-            const productData = {name,desc,price,quantity};
+            const productData = { name, desc, price, quantity: 0 };
 
             try {
-                // Send a request to the Rust backend
-                const response = await fetch(`api/addproduct`, {
-                    method: 'POST',
-                    headers:{'Content-Type': 'application/json'},
-                    body: JSON.stringify(productData),//sending the whole product to rust function
-                    credentials: 'same-origin'
-                });
+                if (hasVariants) {
+                    // Create the base product with quantity set to 0
+                    const baseProductResponse = await fetch(`/api/add_product`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(productData),
+                        credentials: 'same-origin',
+                    });
 
-                if (response.ok) {
-                    alert('Product added successfully!');
+                    if (!baseProductResponse.ok) {
+                        throw new Error('Failed to create base product');
+                    }
+
+                    const baseProduct = await baseProductResponse.json();
+
+                    // Check the base product response for the productId
+                    const productId = baseProduct; // Assuming the response has an `id` field
+
+                    // Add the variants after creating the base product
+                    const variantCount = parseInt(document.getElementById('variant-count').value);
+                    for (let i = 0; i < variantCount; i++) {
+                        const variantQuantity = parseInt(document.getElementById(`variant-quantity-${i}`).value);
+                        const variantTagName = document.getElementById(`variant-tag-${i}`).value;
+                        const variantImage = document.getElementById(`variant-image-${i}`).files[0];
+                        // Split the tag name into individual tags (if it's combined like "sizemedium colorwhite")
+                        const tagNames = variantTagName.split(' ').map(tag => tag.toLowerCase());
+
+                        if (tagNames.length === 0) {
+                            throw new Error('Invalid tag name');
+                        }
+
+                        const variantData = {
+                            quantity: variantQuantity,
+                            tag_name: tagNames, // Use the valid tags
+                            product: productId,
+                            image: variantImage ? await convertFileToBase64(variantImage) : null,
+                        };
+
+                        const variantResponse = await fetch(`/api/add_variant`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(variantData),
+                            credentials: 'same-origin',
+                        });
+
+                        if (!variantResponse.ok) {
+                            throw new Error('Failed to add product variant');
+                        }
+                    }
                 } else {
-                    const errorText = await response.text();
-                    alert('Failed to add product: ' + errorText);
+                    // Handle the product without variants (including quantity and image)
+                    productData.quantity = parseInt(document.getElementById('product-quantity').value);
+                    const productImage = document.getElementById('product-image').files[0];
+                    if (productImage) {
+                        productData.image = await convertFileToBase64(productImage);
+                    }
+
+                    const response = await fetch(`/api/add_product`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(productData),
+                        credentials: 'same-origin',
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Failed to add product');
+                    }
                 }
+                window.location.href = '/adminconfirm.html?status=success';
             } catch (error) {
-                console.error('Error adding product:', error);
+                window.location.href = '/adminconfirm.html?status=failure';
             }
         }
 
-
-        async function createUpdateForm() {
-            const form = document.createElement('form');
-            form.action = "modifyinventoryaction.html";
-            form.onsubmit = handleUpdateProduct; //function calling on pressing submit is below
-            form.method = "post";
-
-            // Fetch products from the server
-            try {
-                const response = await fetch('api/getitems');
-                const products = await response.json();
-
-                if (!products || products.length === 0) {
-                    form.innerHTML = `<p>No products available to update.</p>`;
-                    return form;
-                }
-
-                // Create the dropdown with the list of products
-                let productOptions = `<label for="update-product">Select Product</label>
-                    <select id="update-product" name="product_id" onchange="populateProductDetails(this.value)" required>
-                        <option value="">Select a product</option>`;
-                
-                products.forEach(product => {
-                    productOptions += `<option value="${product.name}">${product.name}</option>`;
-                });
-                productOptions += `</select>`;
-
-                // Add the dropdown and input fields to the form
-                form.innerHTML = `
-                    ${productOptions}
-                    <label for="update-description">New Product Description</label>
-                    <input type="text" id="update-description" name="product_description">
-                    
-                    <label for="update-price">New Product Price ($)</label>
-                    <input type="number" id="update-price" name="product_price" step="0.01">
-
-                    <label for="update-quantity">New Product Quantity</label>
-                    <input type="number" id="update-quantity" name="product_quantity">
-
-                    <button type="submit" class="submit-button">Update Product</button>
-                `;
-            } catch (error) {
-                console.error('Error loading products:', error);
-            }
-
-            return form;
+        // Helper function to convert a file to Base64
+        function convertFileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result.split(',')[1]); // Base64 string without the prefix
+                reader.onerror = (error) => reject(error);
+                reader.readAsDataURL(file);
+            });
         }
 
         async function handleUpdateProduct(event) {
             event.preventDefault();
 
-            // Get form data
             const name = document.getElementById('update-product').value;
             const desc = document.getElementById('update-description').value;
             const price = parseFloat(document.getElementById('update-price').value);
             const quantity = parseFloat(document.getElementById('update-quantity').value);
-
-            parseFloat(price.toFixed(2));
-
-            const productData = {name,desc,price,quantity};
+            const productData = { name, desc, price, quantity };
 
             try {
-                // Send a request to the Rust backend
-                const response = await fetch(`api/updateproduct`, {
+                // Step 1: Update the product
+                const productResponse = await fetch('/api/update_product', {
                     method: 'POST',
-                    headers:{'Content-Type': 'application/json'},
-                    body: JSON.stringify(productData),//sending the whole product to rust function
-                    credentials: 'same-origin'
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(productData),
+                    credentials: 'same-origin',
                 });
-
-                if (response.ok) {
-                    alert('Product updated successfully!');
-                } else {
-                    const errorText = await response.text();
-                    alert('Failed to update product: ' + errorText);
+                if (!productResponse) {
+                    const errorText = await productResponse.text();
+                    console.error('Error updating product:', errorText);
+                    window.location.href = '/adminconfirm.html?status=failure';
+                    return;
                 }
+                // Step 2: Check if a variant is selected
+                const product_id = await productResponse.json();
+                const variantId = document.getElementById('update-variant').value;
+                if (variantId) {
+                    const variantQuantity = parseFloat(document.getElementById('update-variant-quantity').value);
+                    const tagNameString = document.getElementById('update-tag-name').value;
+                    const variantImage = document.getElementById('update-variant-image').files[0];
+
+                    // Parse tagNameString into an array of tags (assumes space-separated tags)
+                    const tagNames = tagNameString.split(' ').map((tag) => {
+                        if (tag.toLowerCase().startsWith('size')) {
+                            return { Size: tag.slice(4) };
+                        } else if (tag.toLowerCase().startsWith('color')) {
+                            return { Color: tag.slice(5) };
+                        } else if (tag.toLowerCase() === 'fitted') {
+                            return { Fitted: true };
+                        } else if (tag.toLowerCase() === 'snap') {
+                            return { Fitted: false };
+                        }
+                        console.warn(`Unknown tag: ${tag}`);
+                        return null;
+                    }).filter(Boolean); // Remove null entries from unknown tags
+
+                    // Prepare variant data
+                    const variantData = {
+                        id: variantId,
+                        product: product_id,
+                        quantity: variantQuantity,
+                        tag_name: tagNames, // Send as an array
+                        image: variantImage ? await convertFileToBase64(variantImage) : null,
+                    };
+
+                    // Step 3: Update the variant
+                    const variantResponse = await fetch('/api/modify_variant', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(variantData),
+                        credentials: 'same-origin',
+                    });
+
+                    if (!variantResponse.ok) {
+                        const variantErrorText = await variantResponse.text();
+                        console.error('Error updating variant:', variantErrorText);
+                        window.location.href = '/adminconfirm.html?status=failure';
+                        return;
+                    }
+                }
+
+                // Step 4: Redirect to success page
+                window.location.href = '/adminconfirm.html?status=success';
             } catch (error) {
-                console.error('Error updating product:', error);
+                console.error('Error handling update:', error);
+                window.location.href = '/adminconfirm.html?status=failure';
             }
-        }
-
-        function createRemoveForm() {
-            const form = document.createElement('form');
-            form.action = "modifyinventoryaction.html";
-            form.onsubmit = handleRemoveProduct;
-            form.method = "post";
-
-            form.innerHTML = `
-                <label for="remove-id">Product ID</label>
-                <input type="text" id="remove-id" name="product_id" required>
-                
-                <button type="submit" class="submit-button">Remove Product</button>
-            `;
-            return form;
         }
 
         async function handleRemoveProduct(event) {
             event.preventDefault();
 
-            // Get the product ID from the form
-            const productId = document.getElementById('remove-id').value;
+            const productId = document.getElementById('remove-product').value;
 
             if (!productId) {
-                alert('Please provide a product ID.');
                 return;
             }
 
             try {
-                // Send a DELETE request to the backend to remove the product
-                const response = await fetch(`api/removeproduct/${productId}`, {
+                const response = await fetch(`api/remove_product/${productId}`, {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' },
-                    credentials: 'same-origin', // to maintain the session if needed
+                    credentials: 'same-origin',
                 });
 
                 if (response.ok) {
-                    alert('Product removed successfully!');
+                    window.location.href = '/adminconfirm.html?status=success';
                 } else {
                     const errorText = await response.text();
-                    alert('Failed to remove product: ' + errorText);
+                    window.location.href = '/adminconfirm.html?status=failure';
                 }
             } catch (error) {
                 console.error('Error removing product:', error);
-                alert('Error removing product. Please try again.');
-            }
-
-        }
-
-        // Call this function on page load when the action is set to "update"
-        async function initUpdateForm() {
-            await createUpdateForm();
-        }
-
-        // Function to populate product details based on the selected product
-        async function populateProductDetails(productId) {
-            console.log("Selected productId:", productId);
-            
-            if (!productId) {
-                console.warn("No product selected.");
-                return; // If no product is selected, stop further execution
-            }
-            try {
-                const response = await fetch('api/getitems');
-                const products = await response.json();
-
-                // Check if products are not empty
-                if (products.length === 0) {
-                    console.error("No products available to populate details.");
-                    return;
-                }
-                
-                //finds the specific product based on ID
-                const selectedProduct = products.find(product => product.name === productId);
-                
-                if (!selectedProduct) {
-                    console.error("Product not found with ID:", productId);
-                    return;
-                }
-
-                // Auto-fill the form fields with the product details
-                document.getElementById('update-description').value = selectedProduct.desc;
-                document.getElementById('update-price').value = selectedProduct.price;
-                document.getElementById('update-quantity').value = selectedProduct.quantity;
-            } catch (error) {
-                console.error('Error fetching product details:', error);
+                window.location.href = '/adminconfirm.html?status=failure';
             }
         }
 
@@ -331,24 +490,31 @@
                 retryCount = 0;
                 const response1 = await fetch('/api/current_user');
                 const response2 = await fetch('/api/admin_menu');
-                if (response1.ok && response2.ok) {
+                
+                if (response1.ok) {
                     const data = await response1.json();
-                    if(data && data.username){
-                        document.getElementById('user-name').innerText = data.username;
-                    } else{
-                        window.location.href = 'adminlogin.html'
+                    if (data && data.username) {
+                        // User is authenticated, update the username on the page
+                        //document.getElementById('user-name').innerText = data.username;
+                    } else {
+                        // If no username, the token might be invalid, redirect to login
+                        window.location.href = 'adminlogin.html';
                     }
                 } else {
-                    console.error("Failed to fetch user's name");
-                    window.location.href = 'adminlogin.html'
-                }
-            } catch (error) {
-                console.error("Error fetching user's name:", error);
-                if (retryCount < 3) { // Retry a few times in case of temporary errors
-                    setTimeout(() => fetchUserName(retryCount + 1), 1000); // Retry after 1 second
-                } else {
+                    // Handle invalid token or failed authentication
+                    console.error("Failed to fetch user's name: Unauthorized");
                     window.location.href = 'adminlogin.html';
                 }
+
+                if (!response2.ok) {
+                    // Handle any issues with admin menu fetch (optional)
+                    console.error("Failed to fetch admin menu");
+                }
+
+            } catch (error) {
+                // If an error occurs while fetching, redirect to login
+                console.error("Error fetching user's name:", error);
+                window.location.href = 'adminlogin.html';
             }
         }
         const colorblindButton = document.getElementById('colorblind-button');
@@ -359,6 +525,9 @@
             const savedState = localStorage.getItem('colorblindMode');
             if (savedState) {
                 colorblindButton.setAttribute('src', savedState);  // Set to saved image source
+                if (savedState === 'images/Colorblind_On.png') {
+                    document.body.classList.add('colorblind'); // Apply grayscale filter
+                }
             }
         }
 
@@ -370,8 +539,10 @@
             // Toggle between 'Colorblind_Off.png' and 'Colorblind_On.png'
             if (currentSrc === 'images/Colorblind_Off.png') {
                 newSrc = 'images/Colorblind_On.png';
+                document.body.classList.add('colorblind'); // Apply grayscale filter
             } else {
                 newSrc = 'images/Colorblind_Off.png';
+                document.body.classList.remove('colorblind'); // Remove grayscale filter
             }
 
             // Set the new image source
@@ -416,7 +587,7 @@
             updateCartCount(cartCount);
         });
 
-        //window.addEventListener('load', fetchUserName());
+        window.addEventListener('load', fetchUserName());
     </script>
  
 </body>

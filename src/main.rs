@@ -25,7 +25,9 @@ mod api {
         sqlx::{Row, SqlitePool},
         Connection, Database,
     };
-    use serde::{Deserialize, Serialize};
+    use serde::{Deserialize, Serialize, Deserializer};
+    use serde::de::{self, Visitor};
+    use std::fmt;
     use serde_json::Value;
     use sha2::{Digest, Sha256};
     use std::str::FromStr;
@@ -45,7 +47,7 @@ mod api {
 
     #[derive(Serialize, Deserialize, FromForm)]
     struct Product {
-        id: i32,
+        id: Option<i32>,
         name: String,
         desc: String,
         price: f32,
@@ -84,7 +86,7 @@ mod api {
         }
     }
 
-    #[derive(Serialize, Deserialize)]
+    #[derive(Serialize, PartialEq)]
     enum VarTag {
         Size(String),
         Color(String),
@@ -123,12 +125,47 @@ mod api {
             }
         }
     }
+    impl<'de> Deserialize<'de> for VarTag {
+        fn deserialize<D>(deserializer: D) -> Result<VarTag, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            struct VarTagVisitor;
+    
+            impl<'de> Visitor<'de> for VarTagVisitor {
+                type Value = VarTag;
+    
+                fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                    write!(formatter, "a string representing a valid tag")
+                }
+    
+                fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+                where
+                    E: de::Error,
+                {
+                    if value.starts_with("size") {
+                        Ok(VarTag::Size(value[4..].to_string()))
+                    } else if value.starts_with("color") {
+                        Ok(VarTag::Color(value[5..].to_string()))
+                    } else if value == "fitted" {
+                        Ok(VarTag::Fitted(true))
+                    } else if value == "snap" {
+                        Ok(VarTag::Fitted(false))
+                    } else {
+                        Err(de::Error::unknown_field(value, &["size", "color", "fitted"]))
+                    }
+                }
+            }
+    
+            deserializer.deserialize_str(VarTagVisitor)
+        }
+    }
     #[derive(Serialize, Deserialize)]
     struct ProductVariant {
         quantity: Option<u32>,
         tag_name: Vec<VarTag>,
         product: u32,
-        varid: u32,
+        varid: Option<u32>,
         image: Option<std::string::String>
     }
 
@@ -232,7 +269,9 @@ mod api {
                 }
             }
         }
-        None // Return None if no valid user is found
+
+        // If no valid token or username found, return None (to trigger the redirect)
+        None
     }
 
     fn generate_token_and_expiration() -> (String, chrono::DateTime<Utc>) {
@@ -639,7 +678,7 @@ mod api {
     }
 
     #[allow(private_interfaces)]
-    #[get("/getitems")]
+    #[get("/get_items")]
     pub(super) async fn get_items(
         mut db: Connection<RoboDatabase>,
     ) -> Result<Json<Vec<Product>>, String> {
@@ -686,43 +725,54 @@ mod api {
     }
 
     #[allow(private_interfaces)]
-    #[post("/addproduct", data = "<new_product>")]
+    #[post("/add_product", data = "<new_product>")]
     pub(super) async fn add_product(
         new_product: Json<Product>,
         mut db: Connection<RoboDatabase>,
         jar: &CookieJar<'_>,
-    ) -> Result<&'static str, String> {
+    ) -> Result<Json<i32>, String> {
         match validate_user(jar.get("token").map(|x| x.value()).unwrap_or("")) {
             Some(_) => {}
             None => return Err("Not logged in".into()),
         };
 
-        let mut itemtoadd = new_product.into_inner();
+        let mut item_to_add = new_product.into_inner();
 
         // Round the price to exactly 2 decimal places
-        let formatted_price = (itemtoadd.price * 100.0).round() / 100.0;
-        itemtoadd.price = formatted_price;
+        let formatted_price = (item_to_add.price * 100.0).round() / 100.0;
+        item_to_add.price = formatted_price;
 
-        rocket_db_pools::sqlx::query(
-            "insert into products (name, desc, price, quantity) values ($1, $2 ,$3, $4)",
+        // Insert the new product into the database without specifying the ID (let the DB auto-generate it)
+        let result = rocket_db_pools::sqlx::query(
+            "insert into products (name, desc, price, quantity) values ($1, $2, $3, $4) returning product_id",
         )
-        .bind(&itemtoadd.name)
-        .bind(&itemtoadd.desc)
-        .bind(&itemtoadd.price)
-        .bind(&itemtoadd.quantity)
-        .execute(&mut **db)
-        .await
-        .map_err(|e| format!("Database error {e}"))?;
-        Ok("Added")
+        .bind(&item_to_add.name)
+        .bind(&item_to_add.desc)
+        .bind(&item_to_add.price)
+        .bind(&item_to_add.quantity)
+        .fetch_one(&mut **db)
+        .await;
+
+        match result {
+            Ok(row) => {
+                // Extract the generated ID from the result
+                let product_id: i32 = row.try_get("product_id").map_err(|e| format!("Error extracting ID: {}", e))?;
+
+                // Return the ID as JSON
+                Ok(Json(product_id))
+            }
+            Err(e) => Err(format!("Database error: {}", e)),
+        }
     }
 
     #[allow(private_interfaces)]
-    #[post("/updateproduct", data = "<updated_product>")]
+    #[post("/update_product", data = "<updated_product>")]
     pub(super) async fn update_product(
-        updated_product: Json<Product>,  // Handle the updated form data
+        updated_product: Json<Product>, // Handle the updated form data
         mut db: Connection<RoboDatabase>,
         jar: &CookieJar<'_>,
-    ) -> Result<&'static str, String> {
+    ) -> Result<Json<i32>, String> { // Return the product_id as a String
+        // Validate the user's session
         match validate_user(jar.get("token").map(|x| x.value()).unwrap_or("")) {
             Some(_) => {}
             None => return Err("Not logged in".into()),
@@ -731,46 +781,82 @@ mod api {
         let product = updated_product.into_inner();
 
         // Update product in the database
-        let result = rocket_db_pools::sqlx::query(
-            "UPDATE products SET desc = $1, price = $2, quantity = $3 WHERE name = $4"
+        let update_result = rocket_db_pools::sqlx::query(
+            "UPDATE products SET 'desc' = $1, price = $2, quantity = $3 WHERE name = $4 RETURNING product_id"
         )
         .bind(&product.desc)
         .bind(&product.price)
         .bind(&product.quantity)
         .bind(&product.name)
-        .execute(&mut **db)
+        .fetch_one(&mut **db)
         .await;
 
-        match result {
-            Ok(_) => Ok("Product updated successfully."),
+        match update_result {
+            Ok(row) => {
+                // Retrieve the product_id from the returned row
+                let product_id: i32 = row.get("product_id");
+                Ok(Json(product_id)) // Return the product_id as a string
+            }
             Err(e) => Err(format!("Error updating product: {e}")),
         }
     }
 
     #[allow(private_interfaces)]
-    #[delete("/removeproduct/<product_name>")]
+    #[delete("/remove_product/<product_name>")]
     pub(super) async fn remove_product(
-        product_name: String,
+        product_name: &str, // Parameter type still as String
         mut db: Connection<RoboDatabase>,
     ) -> Result<Json<String>, String> {
-        // Perform the delete query to remove the product by name
-        let result = rocket_db_pools::sqlx::query("DELETE FROM products WHERE name = ?")
+        // Retrieve the product_id of the product to delete
+        let product_result = rocket_db_pools::sqlx::query("SELECT product_id FROM products WHERE name = ?")
             .bind(&product_name) // Bind the product name to the query
-            .execute(&mut **db)
+            .fetch_one(&mut **db) // Fetch the row
             .await;
-    
-        match result {
+
+        // Check if the product exists and extract the product_id
+        let product_id = match product_result {
+            Ok(row) => row.get::<i32, _>("product_id"), // Extract product_id (assuming it's of type i32)
+            Err(e) => {
+                return Err(format!("Failed to find product: {}", e)); // Return error if the product is not found
+            }
+        };
+
+        // First, remove variants associated with the product
+        let variant_result = rocket_db_pools::sqlx::query("DELETE FROM product_variants WHERE product_id = ?")
+            .bind(product_id) // Bind the product_id to the query
+            .execute(&mut **db) // Execute the delete query within the transaction
+            .await;
+
+        match variant_result {
+            Ok(query_result) => {
+                if query_result.rows_affected() == 0 {
+                    // No variants were removed, which might be fine, so continue
+                    println!("No variants found for product '{}'", product_name);
+                }
+            }
+            Err(e) => {
+                return Err(format!("Failed to remove variants: {}", e));
+            }
+        }
+
+        // Now, remove the product
+        let product_result = rocket_db_pools::sqlx::query("DELETE FROM products WHERE name = ?")
+            .bind(&product_name) // Bind the product name to the query
+            .execute(&mut **db) // Execute the delete query within the transaction
+            .await;
+
+        match product_result {
             Ok(query_result) => {
                 if query_result.rows_affected() > 0 {
-                    // Successfully removed
-                    Ok(Json("Product removed successfully.".to_string()))
+                    // Commit the transaction if both delete operations were successful
+                    Ok(Json("Product and associated variants removed successfully.".to_string()))
                 } else {
                     // No product found with the given name
                     Err("Product not found.".to_string())
                 }
             }
             Err(e) => {
-                // Return an error if the query failed
+                // Return an error if the product deletion fails
                 Err(format!("Failed to remove product: {}", e))
             }
         }
@@ -865,8 +951,8 @@ mod api {
     }
 
     #[allow(private_interfaces)]
-    #[post("/modifyvariant", data = "<variant>")]
-    pub(super) async fn mod_product_variant(
+    #[post("/modify_variant", data = "<variant>")]
+    pub(super) async fn modify_variant(
         variant: Json<ProductVariant>,
         mut db: Connection<RoboDatabase>,
         jar: &CookieJar<'_>,
@@ -895,34 +981,74 @@ mod api {
     }
 
     #[allow(private_interfaces)]
-    #[post("/addvariant", data = "<variant>")]
+    #[post("/add_variant", data = "<variant>")]
     pub(super) async fn add_product_variant(
         variant: Json<ProductVariant>,
         mut db: Connection<RoboDatabase>,
         jar: &CookieJar<'_>,
-    ) -> Result<&'static str, String> {
+    ) -> Result<Json<i32>, String> {
+        // Validate the user's token (authentication)
         match validate_user(jar.get("token").map(|x| x.value()).unwrap_or("")) {
             Some(_) => {}
             None => return Err("Not logged in".into()),
         };
-        rocket_db_pools::sqlx::query(
-            "insert into product_variants (quantity, tag_name, product_id) values (?, ?, ?)",
+
+        // Map tags to their categories
+        let tag_mapping = vec![
+            ("small", VarTag::Size("small".to_string())),
+            ("medium", VarTag::Size("medium".to_string())),
+            ("large", VarTag::Size("large".to_string())),
+            ("white", VarTag::Color("white".to_string())),
+            ("red", VarTag::Color("red".to_string())),
+            ("blue", VarTag::Color("blue".to_string())),
+            ("fitted", VarTag::Fitted(true)),
+            ("snap", VarTag::Fitted(false)),
+        ];
+
+        // Validate and normalize the tags
+        let normalized_tags: Vec<String> = variant
+            .tag_name
+            .iter()
+            .map(|tag| {
+                // Map the tag to its corresponding VarTag variant
+                tag_mapping
+                    .iter()
+                    .find(|(_, category)| *category == *tag)
+                    .map(|(tag_value, _)| tag_value.to_string()) // Convert to string
+            })
+            .filter_map(|t| t) // Filter out invalid tags that couldn't be mapped
+            .collect();
+
+        // Ensure all tags are valid (i.e., they map to recognized categories)
+        if normalized_tags.is_empty() {
+            return Err("Invalid tag name".into());
+        }
+
+        // Combine the valid tags into a single string (e.g., "size small color white")
+        let combined_tags = normalized_tags.join(" ");
+
+        // Insert into the database and return the generated ID (var_id)
+        let result = rocket_db_pools::sqlx::query(
+            "insert into product_variants (quantity, tag_name, product_id) values (?, ?, ?) RETURNING var_id",
         )
         .bind(variant.quantity)
-        .bind(
-            variant
-                .tag_name
-                .iter()
-                .map(|e| e.to_string())
-                .reduce(|x, y| x + " " + &y),
-        )
+        .bind(combined_tags) // Use the combined, normalized tags string
         .bind(variant.product)
-        .execute(&mut **db)
-        .await
-        .map_err(|e| e.to_string())?;
+        .fetch_one(&mut **db)
+        .await;
 
-        Ok("ok")
+        match result {
+            Ok(row) => {
+                // Extract the generated ID (var_id) from the result
+                let var_id: i32 = row.try_get("var_id").map_err(|e| format!("Error extracting ID: {}", e))?;
+
+                // Return the ID as JSON
+                Ok(Json(var_id))
+            }
+            Err(e) => Err(format!("Database error: {}", e)),
+        }
     }
+
 
     #[allow(private_interfaces)]
     #[get("/get_websiteinfo")]
@@ -1270,6 +1396,70 @@ mod api {
         // Step 4: Return the order_id
         Ok(Json(order_id)) // Return the generated order_id
     }
+
+    #[allow(private_interfaces)]
+    #[get("/get_product_details?<name>")]
+    pub(super) async fn get_product_details(
+        mut db: Connection<RoboDatabase>,
+        name: String,
+    ) -> Result<Json<Product>, String> {
+        // Query the database for the product by ID
+        let row = rocket_db_pools::sqlx::query(
+            "SELECT * FROM products WHERE name = $1"
+        )
+        .bind(name)
+        .fetch_one(&mut **db)
+        .await
+        .map_err(|e| format!("Error fetching product: {e}"))?;
+
+        // Manually map the row to a Product struct
+        let product = Product {
+            id: row.try_get("product_id").ok(),
+            name: row.try_get("name").unwrap_or_default(),
+            desc: row.try_get("desc").unwrap_or_default(),
+            price: row.try_get("price").unwrap_or_default(),
+            image: row.try_get("image").ok(),
+            quantity: row.try_get("quantity").unwrap_or_default(),
+        };
+
+        // If the query succeeds, return the product in JSON format
+        Ok(Json(product))
+    }
+
+    #[allow(private_interfaces)]
+    #[get("/get_variant_details?<name>")]
+    pub(super) async fn get_variant_details(
+        mut db: Connection<RoboDatabase>,
+        name: String,
+    ) -> Result<Json<ProductVariant>, String> {
+        // Query the database for the product variant by name
+        let row = rocket_db_pools::sqlx::query(
+            "SELECT * FROM product_variants WHERE var_id = $1"
+        )
+        .bind(name)
+        .fetch_one(&mut **db)
+        .await
+        .map_err(|e| format!("Error fetching product variant: {e}"))?;
+
+        // Deserialize the tag_name field if it exists
+        let tag: Vec<VarTag> = match row.try_get::<Option<String>, _>("tag_name") {
+            Ok(Some(value)) => serde_json::from_str(&value).unwrap_or_default(),
+            Ok(None) => Vec::new(),
+            Err(_) => return Err("Failed to parse tag_name".to_string()),
+        };
+
+        // Manually map the row to a ProductVariant struct
+        let product = ProductVariant {
+            tag_name: tag,
+            product: row.try_get("product_id").unwrap_or_default(),
+            varid: row.try_get("var_id").unwrap_or_default(),
+            image: row.try_get("image").ok(),
+            quantity: row.try_get("quantity").unwrap_or_default(),
+        };
+
+        // If the query succeeds, return the product variant in JSON format
+        Ok(Json(product))
+    }
 }
 
 // Route to set homepage.html on run
@@ -1304,7 +1494,7 @@ async fn rocket() -> _ {
                 api::current_user,
                 api::get_product_variants,
                 api::get_variant_id,
-                api::mod_product_variant,
+                api::modify_variant,
                 api::add_product_variant,
                 api::make_image,
                 api::add_cart,
@@ -1320,6 +1510,8 @@ async fn rocket() -> _ {
                 api::clear_cart,
                 api::get_customer_orders,
                 api::get_all_customers,
+                api::get_product_details,
+                api::get_variant_details,
             ],
         )
 }
