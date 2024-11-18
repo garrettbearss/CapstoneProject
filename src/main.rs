@@ -1073,18 +1073,6 @@ mod api {
         email: String,
         phone_number: Option<String>,
     }
-    // Implement Debug for Customer to allow printing for debugging
-    impl std::fmt::Debug for Customer {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            f.debug_struct("Customer")
-                .field("cust_id", &self.cust_id)
-                .field("name", &self.name)
-                .field("address", &self.address)
-                .field("email", &self.email)
-                .field("phone_number", &self.phone_number)
-                .finish()
-        }
-    }
 
     #[derive(Serialize)]
     struct Order {
@@ -1115,28 +1103,41 @@ mod api {
         mut db: Connection<RoboDatabase>,
     ) -> Result<Json<Vec<Customer>>, Status> {
         let query = "SELECT cust_id, name, address, email, phone_number FROM customers";
-        
+
         let rows = rocket_db_pools::sqlx::query(query)
             .fetch_all(&mut **db)
             .await
             .map_err(|_| Status::InternalServerError)?;
 
-        println("Fetched rows: {:?}", rows); // Debugging output
-
         let customers: Vec<Customer> = rows
             .into_iter()
             .filter_map(|row| {
-                let address_json: String = row.get("address");
-                println("Address JSON: {}", address_json);
-                let address: Address = serde_json::from_str(&address_json).ok()?;
+                let cust_id: Option<i32> = row.get("cust_id");
+                let name: String = row.get("name");
+                let address_str: String = row.get("address");
+                let email: String = row.get("email");
+                let phone_number: Option<String> = row.get("phone_number");
 
-                Some(Customer {
-                cust_id: row.get("cust_id"),
-                name: row.get("name"),
-                address,
-                email: row.get("email"),
-                phone_number: row.get("phone_number"),
-                })
+                 // Parse the formatted address string
+                let address_parts: Vec<&str> = address_str.split(',').collect();
+                if address_parts.len() == 5 {
+                    let address = Address {
+                        address_line_1: address_parts[0].trim().to_string(),
+                        admin_area_2: address_parts[1].trim().to_string(),
+                        admin_area_1: address_parts[2].trim().to_string(),
+                        postal_code: address_parts[3].trim().to_string(),
+                        country_code: address_parts[4].trim().to_string(),
+                    };
+
+                    Some(Customer {
+                        cust_id,
+                        name,
+                        address,
+                        email,
+                        phone_number,
+                    })
+
+                }else{ None }
             })
             .collect();
 
@@ -1150,37 +1151,44 @@ mod api {
         cust_id: i32,
         mut db: Connection<RoboDatabase>,
     ) -> Result<Json<Vec<Order>>, Status> {
-        // Fetch all orders for the given customer
-        let query_orders = "SELECT order_id FROM orders WHERE cust_id = ?";
-        let order_rows = rocket_db_pools::sqlx::query(query_orders)
+        let query = "SELECT order_id FROM orders WHERE cust_id = ?";
+        let rows = rocket_db_pools::sqlx::query(query)
             .bind(cust_id)
             .fetch_all(&mut **db)
             .await
             .map_err(|_| Status::InternalServerError)?;
 
         let mut orders = Vec::new();
+        for row in rows {
+            let order_id: i32 = row.get("order_id");
 
-        // For each order, fetch the products
-        for order_row in order_rows {
-            let order_id: i32 = order_row.get("order_id");
-
-            let query_products = "SELECT product_id, var_id, quantity FROM ordered_products WHERE order_id = ?";
-            let product_rows = rocket_db_pools::sqlx::query(query_products)
+            // Fetch ordered items for the current order
+            let products_query = "SELECT product_id, var_id, quantity FROM ordered_products WHERE order_id = ?";
+            let products_rows = rocket_db_pools::sqlx::query(products_query)
                 .bind(order_id)
                 .fetch_all(&mut **db)
                 .await
                 .map_err(|_| Status::InternalServerError)?;
 
-            let products: Vec<OrderedItem> = product_rows
+            let products: Vec<OrderedItem> = products_rows
                 .into_iter()
-                .map(|row| OrderedItem {
-                    product_id: row.get("product_id"),
-                    variant: row.get("var_id"),
-                    quantity: row.get("quantity"),
+                .filter_map(|row| {
+                    let product_id: i32 = row.get("product_id");
+                    let variant: Option<i32> = row.get("var_id");
+                    let quantity: i32 = row.get("quantity");
+
+                    Some(OrderedItem {
+                        product_id,
+                        variant,
+                        quantity,
+                    })
                 })
                 .collect();
 
-            orders.push(Order { order_id, products });
+            orders.push(Order {
+                order_id,
+                products,
+            });
         }
 
         Ok(Json(orders))
