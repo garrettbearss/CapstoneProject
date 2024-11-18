@@ -1508,8 +1508,6 @@ async fn rocket() -> _ {
                 api::remove_product,
                 api::create_order,
                 api::clear_cart,
-                api::get_customer_orders,
-                api::get_all_customers,
                 api::get_product_details,
                 api::get_variant_details,
                 api::get_customer_orders,
