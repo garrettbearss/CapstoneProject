@@ -52,29 +52,107 @@
 
     <!-- Main Content Section -->
     <div class="content">
-        <h1>Check Order Status</h1>
-        <p>Enter your order ID below to check the status of your order.</p>
-
-        <!-- Form to Check Order Status -->
-        <div class="order-status-form">
-            <form action="checkorderstatusaction.html" method="post">
-                <label for="order-id">Order ID</label>
-                <input type="text" id="order-id" name="order_id" placeholder="Enter your Order ID" required>
-                
-                <button type="submit" class="check-button">Check Status</button>
-            </form>
+        <h1>Customer List</h1>
+        <p>Click on a customer to view their orders.</p>
+    
+        <!-- Section to Display All Customers -->
+        <div class="status-display" id="customer-list">
+            <p>Loading customers...</p>
         </div>
-
-        <!-- Display Order Status (This section can be populated dynamically with order status details) -->
-        <div class="status-display">
-            <!-- Order status details can be shown here after user checks status -->
-            <p>Order Status: Awaiting Order ID...</p>
+    
+        <!-- Section to Display Orders for Selected Customer -->
+        <div class="status-display" id="order-details" style="display: none;">
+            <h3>Orders for Customer: <span id="customer-name"></span></h3>
+            <div id="order-list">
+                <p>No orders to display.</p>
+            </div>
+            <button onclick="goBack()" class="check-button">Back to Customer List</button>
         </div>
     </div>
 
     <!-- JavaScript for toggling the colorblind image -->
     <script>
-        async function fetchUserName() {
+        // Fetch customers on page load
+        document.addEventListener('DOMContentLoaded', fetchCustomers);
+
+        async function fetchCustomers() {
+            try {
+                const response = await fetch('/api/getallcustomers');
+                if (!response.ok) throw new Error('Failed to fetch customers');
+                const customers = await response.json();
+                displayCustomers(customers);
+            } catch (error) {
+                console.error('Error fetching customers:', error);
+                document.getElementById('customer-list').innerHTML = '<p>Error loading customers.</p>';
+            }
+        }
+
+        function displayCustomers(customers) {
+            const customerList = document.getElementById('customer-list');
+            if (customers.length === 0) {
+                customerList.innerHTML = '<p>No customers found.</p>';
+                return;
+            }
+
+            let html = '<h3>All Customers</h3>';
+            customers.forEach(customer => {
+                html += `<div style="border: 1px solid #ccc; margin: 10px; padding: 10px;">
+                            <p>Name: ${customer.name}</p>
+                            <p>Address: ${customer.address}</p>
+                            <p>Email: ${customer.email}</p>
+                            <p>Phone: ${customer.phone_number}</p>
+                            <button onclick="fetchCustomerOrders(${customer.cust_id}, '${customer.name}')" class="check-button">View Orders</button>
+                        </div>`;
+            });
+            customerList.innerHTML = html;
+        }
+
+        async function fetchCustomerOrders(custId, customerName) {
+            try {
+                const response = await fetch(`/api/getcustomerorders/${custId}`);
+                if (!response.ok) throw new Error('Failed to fetch orders');
+                const orders = await response.json();
+
+                // Display orders for the selected customer
+                document.getElementById('customer-name').textContent = customerName;
+                displayOrders(orders);
+            } catch (error) {
+                console.error('Error fetching orders:', error);
+                document.getElementById('order-list').innerHTML = '<p>Error loading orders.</p>';
+            }
+        }
+
+        function displayOrders(orders) {
+            const orderList = document.getElementById('order-list');
+            if (orders.length === 0) {
+                orderList.innerHTML = '<p>No orders found for this customer.</p>';
+            } else {
+                let html = '';
+                orders.forEach(order => {
+                    html += `<div style="border: 1px solid #ccc; margin: 10px; padding: 10px;">
+                                <h4>Order ID: ${order.order_id}</h4>
+                                <h5>Products:</h5>
+                                <ul>`;
+                    order.products.forEach(product => {
+                        html += `<li>Product ID: ${product.product_id}, Variant ID: ${product.var_id}, Quantity: ${product.quantity}</li>`;
+                    });
+                    html += `</ul></div>`;
+                });
+                orderList.innerHTML = html;
+            }
+
+            // Show the orders section and hide the customer list
+            document.getElementById('customer-list').style.display = 'none';
+            document.getElementById('order-details').style.display = 'block';
+        }
+
+        function goBack() {
+            // Show the customer list and hide the orders section
+            document.getElementById('customer-list').style.display = 'block';
+            document.getElementById('order-details').style.display = 'none';
+        }
+
+        /*async function fetchUserName() {
             try {
                 retryCount = 0;
                 const response1 = await fetch('/api/current_user');
@@ -98,7 +176,7 @@
                     window.location.href = 'adminlogin.html';
                 }
             }
-        }
+        }*/
         const colorblindButton = document.getElementById('colorblind-button');
         const cartCountElement = document.getElementById('cart-count');
 

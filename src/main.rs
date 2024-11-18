@@ -1064,7 +1064,42 @@ mod api {
         }
     }
 
-    #[derive(Deserialize)]
+    // Structs for customers, orders, and products
+    #[derive(Serialize, Deserialize)]
+    struct Customer {
+        cust_id: Option<i32>,
+        name: String,
+        address: Address,
+        email: String,
+        phone_number: Option<String>,
+    }
+    // Implement Debug for Customer to allow printing for debugging
+    impl std::fmt::Debug for Customer {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.debug_struct("Customer")
+                .field("cust_id", &self.cust_id)
+                .field("name", &self.name)
+                .field("address", &self.address)
+                .field("email", &self.email)
+                .field("phone_number", &self.phone_number)
+                .finish()
+        }
+    }
+
+    #[derive(Serialize)]
+    struct Order {
+        order_id: i32,
+        products: Vec<OrderedItem>,
+    }
+
+    #[derive(Serialize, Deserialize)]
+    struct OrderedItem {
+        product_id: i32,
+        variant: Option<i32>,
+        quantity: i32,
+    }
+
+    #[derive(Serialize, Deserialize)]
     struct Address {
         address_line_1: String,
         admin_area_2: String, // City
@@ -1073,19 +1108,82 @@ mod api {
         country_code: String,
     }
 
-    #[derive(Deserialize)]
-    struct Customer {
-        name: String,
-        address: Address,
-        email: String,
-        phone_number: Option<String>,
+    // Fetch all customers
+    #[allow(private_interfaces)]
+    #[get("/getallcustomers")]
+    pub(super) async fn get_all_customers(
+        mut db: Connection<RoboDatabase>,
+    ) -> Result<Json<Vec<Customer>>, Status> {
+        let query = "SELECT cust_id, name, address, email, phone_number FROM customers";
+        
+        let rows = rocket_db_pools::sqlx::query(query)
+            .fetch_all(&mut **db)
+            .await
+            .map_err(|_| Status::InternalServerError)?;
+
+        println("Fetched rows: {:?}", rows); // Debugging output
+
+        let customers: Vec<Customer> = rows
+            .into_iter()
+            .filter_map(|row| {
+                let address_json: String = row.get("address");
+                println("Address JSON: {}", address_json);
+                let address: Address = serde_json::from_str(&address_json).ok()?;
+
+                Some(Customer {
+                cust_id: row.get("cust_id"),
+                name: row.get("name"),
+                address,
+                email: row.get("email"),
+                phone_number: row.get("phone_number"),
+                })
+            })
+            .collect();
+
+        Ok(Json(customers))
     }
 
-    #[derive(Deserialize)]
-    struct OrderedItem {
-        product_id: i32,
-        variant: Option<i32>,
-        quantity: i32,
+    // Fetch orders for a specific customer
+    #[allow(private_interfaces)]
+    #[get("/getcustomerorders/<cust_id>")]
+    pub(super) async fn get_customer_orders(
+        cust_id: i32,
+        mut db: Connection<RoboDatabase>,
+    ) -> Result<Json<Vec<Order>>, Status> {
+        // Fetch all orders for the given customer
+        let query_orders = "SELECT order_id FROM orders WHERE cust_id = ?";
+        let order_rows = rocket_db_pools::sqlx::query(query_orders)
+            .bind(cust_id)
+            .fetch_all(&mut **db)
+            .await
+            .map_err(|_| Status::InternalServerError)?;
+
+        let mut orders = Vec::new();
+
+        // For each order, fetch the products
+        for order_row in order_rows {
+            let order_id: i32 = order_row.get("order_id");
+
+            let query_products = "SELECT product_id, var_id, quantity FROM ordered_products WHERE order_id = ?";
+            let product_rows = rocket_db_pools::sqlx::query(query_products)
+                .bind(order_id)
+                .fetch_all(&mut **db)
+                .await
+                .map_err(|_| Status::InternalServerError)?;
+
+            let products: Vec<OrderedItem> = product_rows
+                .into_iter()
+                .map(|row| OrderedItem {
+                    product_id: row.get("product_id"),
+                    variant: row.get("var_id"),
+                    quantity: row.get("quantity"),
+                })
+                .collect();
+
+            orders.push(Order { order_id, products });
+        }
+
+        Ok(Json(orders))
     }
 
     #[derive(Deserialize)]
@@ -1212,6 +1310,8 @@ async fn rocket() -> _ {
                 api::remove_product,
                 api::create_order,
                 api::clear_cart,
+                api::get_customer_orders,
+                api::get_all_customers,
             ],
         )
 }
