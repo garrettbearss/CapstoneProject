@@ -793,6 +793,7 @@ dependencies = [
 name = "kent_state_robotics_website"
 version = "0.1.0"
 dependencies = [
+ "base64",
  "chrono",
  "hex",
  "rand",
