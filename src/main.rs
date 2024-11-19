@@ -637,16 +637,13 @@ mod api {
         Json(total_quantity)
     }
 
-    #[post("/removecart?<name>")]
-    pub async fn remove_cart(pot: &CookieJar<'_>, name: String) -> Json<usize> {
-        //let decoded_name = decode(&name)unwrap_or(name);
-
+    #[post("/removecart?<name>&<variant>")]
+    pub async fn remove_cart(pot: &CookieJar<'_>, name: String, variant: String) -> Json<usize> {
         // Retrieve the existing cart from the cookie
         let cart_items: Vec<CartItem> = if let Some(cookie) = pot.get("cart_items") {
             if let Ok(mut items) = serde_json::from_str::<Vec<CartItem>>(cookie.value()) {
-
-                // Filter out the item to be removed
-                items.retain(|item| item.name != name);
+                // Filter out the item to be removed by matching both name and variant
+                items.retain(|item| item.name != name || item.variant != variant);
 
                 // Update the cookie with the remaining items
                 let updated_cart = serde_json::to_string(&items).unwrap();
