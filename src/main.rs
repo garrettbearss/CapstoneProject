@@ -547,8 +547,17 @@ mod api {
     #[post("/create_admin", data = "<admin_form>")]
     pub async fn create_admin(
         admin_form: Form<CreateAdmin>,
+        jar: &CookieJar<'_>,
         mut db: Connection<RoboDatabase>,
     ) -> Result<Json<ResponseData>, Status> {
+        let token = jar.get("token").map(|c| c.value().to_string());
+
+        if let Some(token_value) = token {
+            match validate_user(&token_value, &mut db, "admincreate").await {
+                Ok(_) => {}
+                Err(_) => return Err(Status::Unauthorized),
+            }
+        }
         // Generate a random salt
         let salt: String = rand::thread_rng()
             .sample_iter(&Alphanumeric)
@@ -572,6 +581,21 @@ mod api {
         .await;
 
         // Handle the result of the database operation
+        match result {
+            Ok(_) => {
+                // Return a JSON response with a success flag
+            }
+            Err(_) => {
+                // Return a JSON response with an error message
+                return Err(Status::InternalServerError);
+            }
+        }
+        let result = rocket_db_pools::sqlx::query(
+            "INSERT INTO permissions (username, permission) VALUES (?, 'admin')",
+        )
+        .bind(&admin_form.username)
+        .execute(&mut **db)
+        .await;
         match result {
             Ok(_) => {
                 // Return a JSON response with a success flag
@@ -833,7 +857,18 @@ mod api {
     pub(super) async fn remove_product(
         product_name: &str, // Parameter type still as String
         mut db: Connection<RoboDatabase>,
+        jar: &CookieJar<'_>,
     ) -> Result<Json<String>, String> {
+        match validate_user(
+            jar.get("token").map(|x| x.value()).unwrap_or(""),
+            &mut db,
+            "removeproduct",
+        )
+        .await
+        {
+            Ok(_) => {}
+            Err(e) => return Err(format!("Not logged in: {e}")),
+        };
         // Retrieve the product_id of the product to delete
         let product_result =
             rocket_db_pools::sqlx::query("SELECT product_id FROM products WHERE name = ?")
@@ -1207,7 +1242,18 @@ mod api {
     #[get("/get_admins")]
     pub(super) async fn get_admins(
         mut db: Connection<RoboDatabase>,
+        jar: &CookieJar<'_>,
     ) -> Result<Json<Vec<String>>, Status> {
+        match validate_user(
+            jar.get("token").map(|x| x.value()).unwrap_or(""),
+            &mut db,
+            "adminlist",
+        )
+        .await
+        {
+            Ok(_) => {}
+            Err(_) => return Err(Status::Unauthorized),
+        };
         // SQL query to fetch all usernames from the admins table
         let usernames_query = rocket_db_pools::sqlx::query("SELECT username FROM admins")
             .fetch_all(&mut **db)
@@ -1229,7 +1275,18 @@ mod api {
     pub(super) async fn delete_admin(
         username: &str,
         mut db: Connection<RoboDatabase>,
+        jar: &CookieJar<'_>,
     ) -> Result<Json<ResponseData>, Status> {
+        match validate_user(
+            jar.get("token").map(|x| x.value()).unwrap_or(""),
+            &mut db,
+            "admindelete",
+        )
+        .await
+        {
+            Ok(_) => {}
+            Err(_) => return Err(Status::Unauthorized),
+        };
         // SQL query to delete the admin by username
         let result = rocket_db_pools::sqlx::query("DELETE FROM admins WHERE username = ?")
             .bind(username)
@@ -1283,7 +1340,18 @@ mod api {
     #[get("/getallcustomers")]
     pub(super) async fn get_all_customers(
         mut db: Connection<RoboDatabase>,
+        jar: &CookieJar<'_>,
     ) -> Result<Json<Vec<Customer>>, Status> {
+        match validate_user(
+            jar.get("token").map(|x| x.value()).unwrap_or(""),
+            &mut db,
+            "customer",
+        )
+        .await
+        {
+            Ok(_) => {}
+            Err(_) => return Err(Status::Unauthorized),
+        };
         let query = "SELECT cust_id, name, address, email, phone_number FROM customers";
 
         let rows = rocket_db_pools::sqlx::query(query)
@@ -1333,7 +1401,18 @@ mod api {
     pub(super) async fn get_customer_orders(
         cust_id: i32,
         mut db: Connection<RoboDatabase>,
+        jar: &CookieJar<'_>,
     ) -> Result<Json<Vec<Order>>, Status> {
+        match validate_user(
+            jar.get("token").map(|x| x.value()).unwrap_or(""),
+            &mut db,
+            "customer",
+        )
+        .await
+        {
+            Ok(_) => {}
+            Err(_) => return Err(Status::Unauthorized),
+        };
         let query = "SELECT order_id FROM orders WHERE cust_id = ?";
         let rows = rocket_db_pools::sqlx::query(query)
             .bind(cust_id)
