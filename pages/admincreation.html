@@ -73,6 +73,9 @@
 
     <!-- JavaScript for Password Validation and Handling Response -->
     <script>
+        const colorblindButton = document.getElementById('colorblind-button');
+        const cartCountElement = document.getElementById('cart-count');
+
         async function fetchUserName() {
             try {
                 retryCount = 0;
@@ -181,7 +184,7 @@
                 return; // Exit if passwords don't match
             }
 
-            const formData = new FormData(document.getElementById('adminForm'));
+            const formData = new FormData(this);
             const responseMessageElement = document.getElementById('responseMessage');
 
             try {
@@ -206,6 +209,11 @@
                 responseMessageElement.textContent = 'An error occurred. Please try again.';
             }
         });
+
+        // Example function to update the cart count dynamically
+        function updateCartCount(count) {
+            cartCountElement.textContent = count;
+        }
     </script>
 
 </body>
