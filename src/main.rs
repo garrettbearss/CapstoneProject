@@ -9,11 +9,14 @@ use rocket_db_pools::Database;
 extern crate rocket;
 
 mod api {
+    use crate::rocket::futures::TryFutureExt;
+    use base64::engine::general_purpose::STANDARD;
+    use base64::Engine;
     use chrono::{Duration, NaiveDate, NaiveDateTime, Utc};
     use rand::{distributions::Alphanumeric, Rng};
     use rocket::form::Form;
     use rocket::fs::TempFile;
-    use crate::rocket::futures::TryFutureExt;
+
     use rocket::http::Cookie;
     use rocket::http::CookieJar;
     use rocket::http::Status;
@@ -25,15 +28,13 @@ mod api {
         sqlx::{Row, SqlitePool},
         Connection, Database,
     };
-    use serde::{Deserialize, Serialize, Deserializer};
     use serde::de::{self, Visitor};
-    use std::fmt;
+    use serde::{Deserialize, Deserializer, Serialize};
     use serde_json::Value;
     use sha2::{Digest, Sha256};
+    use std::fmt;
     use std::str::FromStr;
     use uuid::Uuid;
-    use base64::Engine;
-    use base64::engine::general_purpose::STANDARD;
 
     #[derive(Database)]
     #[database("db")]
@@ -57,14 +58,14 @@ mod api {
 
     impl TryFrom<SqliteRow> for Product {
         type Error = String;
-    
+
         fn try_from(value: SqliteRow) -> Result<Self, Self::Error> {
             // Attempt to fetch the image blob from the database
             let image_blob: Option<Vec<u8>> = value.try_get("image").ok();
-            
+
             // Convert the image blob to a Base64-encoded string
             let image_base64 = image_blob.map(|blob| STANDARD.encode(&blob));
-    
+
             Ok(Self {
                 id: value
                     .try_get("product_id")
@@ -131,14 +132,14 @@ mod api {
             D: Deserializer<'de>,
         {
             struct VarTagVisitor;
-    
+
             impl<'de> Visitor<'de> for VarTagVisitor {
                 type Value = VarTag;
-    
+
                 fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                     write!(formatter, "a string representing a valid tag")
                 }
-    
+
                 fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
                 where
                     E: de::Error,
@@ -152,11 +153,14 @@ mod api {
                     } else if value == "snap" {
                         Ok(VarTag::Fitted(false))
                     } else {
-                        Err(de::Error::unknown_field(value, &["size", "color", "fitted"]))
+                        Err(de::Error::unknown_field(
+                            value,
+                            &["size", "color", "fitted"],
+                        ))
                     }
                 }
             }
-    
+
             deserializer.deserialize_str(VarTagVisitor)
         }
     }
@@ -166,15 +170,15 @@ mod api {
         tag_name: Vec<VarTag>,
         product: u32,
         varid: Option<u32>,
-        image: Option<std::string::String>
+        image: Option<std::string::String>,
     }
 
     impl TryFrom<SqliteRow> for ProductVariant {
         type Error = String;
-    
+
         fn try_from(value: SqliteRow) -> Result<Self, Self::Error> {
             let image_blob: Option<Vec<u8>> = value.try_get("image").ok();
-            
+
             // Convert the image blob to a Base64-encoded string
             let image_base64 = image_blob.map(|blob| STANDARD.encode(&blob));
             Ok(Self {
@@ -201,7 +205,7 @@ mod api {
     trait Capitalize {
         fn capitalize(&self) -> String;
     }
-    
+
     impl Capitalize for String {
         fn capitalize(&self) -> String {
             let mut c = self.chars();
@@ -424,8 +428,74 @@ mod api {
         }
     }
 
-    fn validate_user(_token: &str) -> Option<String> {
-        Some("test".into())
+    /// Returns a username if the token is valid for the given permission
+    async fn validate_user(
+        token: &str,
+        db: &mut Connection<RoboDatabase>,
+        permission: &str,
+    ) -> Result<String, &'static str> {
+        // Validate the token
+        let user = rocket_db_pools::sqlx::query("SELECT * FROM admins WHERE token = ?")
+            .bind(token)
+            .fetch_one(&mut ***db)
+            .await;
+
+        if let Ok(row) = user {
+            // Fetch `token_expiration` as a `String` from the row
+            let token_expiration_str: String = match row.try_get("token_expiration") {
+                Ok(expiration) => expiration,
+                Err(_) => return Err("Failed to retrieve token expiration."),
+            };
+
+            // Parse the token expiration string into NaiveDateTime
+            let token_expires =
+                match NaiveDateTime::parse_from_str(&token_expiration_str, "%Y-%m-%d %H:%M:%S") {
+                    Ok(parsed_date) => parsed_date,
+                    Err(_) => return Err("Failed to parse token expiration."),
+                };
+
+            let now = Utc::now().naive_utc(); // Get the current time in naive UTC
+
+            // Check if the token has expired
+            if token_expires > now {
+                let username = row
+                    .try_get::<String, _>("username")
+                    .map_err(|_| "Could not find username in admins")?;
+                let perms =
+                    rocket_db_pools::sqlx::query("SELECT * FROM permissions WHERE username = ?")
+                        .bind(&username)
+                        .fetch(&mut ***db);
+                // .map_err(|_| "Could not find permissions in table")?;
+                let maybe_perm = perms
+                    .filter(|row| {
+                        let perm = row
+                            .as_ref()
+                            .map(|r| r.get::<String, _>("permission"))
+                            .unwrap_or(String::new());
+                        async move { &perm == permission }
+                    })
+                    .collect::<Vec<_>>()
+                    .await;
+                if !maybe_perm.is_empty() {
+                    Ok(username)
+                } else {
+                    Err("User did not have correct permissions")
+                }
+            } else {
+                // If the token is expired, clear it from the database
+                rocket_db_pools::sqlx::query(
+                    "UPDATE admins SET token = NULL, token_expires = NULL WHERE token = ?",
+                )
+                .bind(token) // Use the cloned value here
+                .execute(&mut ***db)
+                .await
+                .map_err(|_| "Could not remove token from database")?;
+
+                Err("Token has expired.")
+            }
+        } else {
+            Err("Token does not exist.")
+        }
     }
 
     #[get("/admin_menu")]
@@ -436,47 +506,14 @@ mod api {
         let token = jar.get("token").map(|c| c.value().to_string());
 
         if let Some(token_value) = token {
-            // Validate the token
-            let user = rocket_db_pools::sqlx::query("SELECT * FROM admins WHERE token = ?")
-                .bind(&token_value)
-                .fetch_one(&mut **db)
-                .await;
-
-            if let Ok(row) = user {
-                // Fetch `token_expiration` as a `String` from the row
-                let token_expiration_str: String = match row.try_get("token_expiration") {
-                    Ok(expiration) => expiration,
-                    Err(_) => return Err("Failed to retrieve token expiration.".to_string()),
-                };
-
-                // Parse the token expiration string into NaiveDateTime
-                let token_expires =
-                    match NaiveDateTime::parse_from_str(&token_expiration_str, "%Y-%m-%d %H:%M:%S")
-                    {
-                        Ok(parsed_date) => parsed_date,
-                        Err(_) => return Err("Failed to parse token expiration.".to_string()),
-                    };
-
-                let now = Utc::now().naive_utc(); // Get the current time in naive UTC
-
-                // Check if the token has expired
-                if token_expires > now {
+            match validate_user(&token_value, &mut db, "admin").await {
+                Ok(_) => {
                     return Ok(Json(serde_json::json!({
                         "success": true,
                         "message": "Access granted."
                     })));
-                } else {
-                    // If the token is expired, clear it from the database
-                    rocket_db_pools::sqlx::query(
-                        "UPDATE admins SET token = NULL, token_expires = NULL WHERE token = ?",
-                    )
-                    .bind(token_value) // Use the cloned value here
-                    .execute(&mut **db)
-                    .await
-                    .ok();
-
-                    return Err("Token has expired.".to_string());
                 }
+                Err(e) => return Err(e.to_string()),
             }
         }
         Err("No valid token found.".to_string())
@@ -561,9 +598,9 @@ mod api {
     #[derive(Serialize, Deserialize, FromForm)]
     struct CartItem {
         product: i32,
-        name: String,           // Common name (product or variant name)
-        quantity: u32,          // Quantity of the item
-        price: f32,             // Price of the item
+        name: String,    // Common name (product or variant name)
+        quantity: u32,   // Quantity of the item
+        price: f32,      // Price of the item
         variant: String, // Variant-specific data (if applicable)
     }
 
@@ -644,7 +681,6 @@ mod api {
         // Retrieve the existing cart from the cookie
         let cart_items: Vec<CartItem> = if let Some(cookie) = pot.get("cart_items") {
             if let Ok(mut items) = serde_json::from_str::<Vec<CartItem>>(cookie.value()) {
-
                 // Filter out the item to be removed
                 items.retain(|item| item.name != name);
 
@@ -672,9 +708,9 @@ mod api {
     pub async fn clear_cart(pot: &CookieJar<'_>) -> Json<Result<usize, String>> {
         // Remove the "cart_items" cookie by setting it to an empty value
         pot.remove(Cookie::new("cart_items", ""));
-        
+
         // Return a success response
-        Json(Ok(1))  // Return 1 for success
+        Json(Ok(1)) // Return 1 for success
     }
 
     #[allow(private_interfaces)]
@@ -702,28 +738,6 @@ mod api {
         Ok(Json(rows_ret))
     }
 
-    #[get("/additem/<name>")]
-    pub(super) async fn add_item(
-        name: &str,
-        mut db: Connection<RoboDatabase>,
-        jar: &CookieJar<'_>,
-    ) -> Result<&'static str, String> {
-        match validate_user(jar.get("token").map(|x| x.value()).unwrap_or("")) {
-            Some(_) => {}
-            None => return Err("Not logged in".into()),
-        };
-        rocket_db_pools::sqlx::query(
-            "insert into products (name, price, quantity) values ($1, $2 ,$3)",
-        )
-        .bind(name)
-        .bind(10.0)
-        .bind(100)
-        .execute(&mut **db)
-        .await
-        .map_err(|e| format!("Database error {e}"))?;
-        Ok("Added")
-    }
-
     #[allow(private_interfaces)]
     #[post("/add_product", data = "<new_product>")]
     pub(super) async fn add_product(
@@ -731,9 +745,15 @@ mod api {
         mut db: Connection<RoboDatabase>,
         jar: &CookieJar<'_>,
     ) -> Result<Json<i32>, String> {
-        match validate_user(jar.get("token").map(|x| x.value()).unwrap_or("")) {
-            Some(_) => {}
-            None => return Err("Not logged in".into()),
+        match validate_user(
+            jar.get("token").map(|x| x.value()).unwrap_or(""),
+            &mut db,
+            "addproduct",
+        )
+        .await
+        {
+            Ok(_) => {}
+            Err(e) => return Err(format!("Not logged in: {e}")),
         };
 
         let mut item_to_add = new_product.into_inner();
@@ -756,7 +776,9 @@ mod api {
         match result {
             Ok(row) => {
                 // Extract the generated ID from the result
-                let product_id: i32 = row.try_get("product_id").map_err(|e| format!("Error extracting ID: {}", e))?;
+                let product_id: i32 = row
+                    .try_get("product_id")
+                    .map_err(|e| format!("Error extracting ID: {}", e))?;
 
                 // Return the ID as JSON
                 Ok(Json(product_id))
@@ -771,11 +793,18 @@ mod api {
         updated_product: Json<Product>, // Handle the updated form data
         mut db: Connection<RoboDatabase>,
         jar: &CookieJar<'_>,
-    ) -> Result<Json<i32>, String> { // Return the product_id as a String
+    ) -> Result<Json<i32>, String> {
+        // Return the product_id as a String
         // Validate the user's session
-        match validate_user(jar.get("token").map(|x| x.value()).unwrap_or("")) {
-            Some(_) => {}
-            None => return Err("Not logged in".into()),
+        match validate_user(
+            jar.get("token").map(|x| x.value()).unwrap_or(""),
+            &mut db,
+            "updateproduct",
+        )
+        .await
+        {
+            Ok(_) => {}
+            Err(e) => return Err(format!("Not logged in: {e}")),
         };
 
         let product = updated_product.into_inner();
@@ -808,10 +837,11 @@ mod api {
         mut db: Connection<RoboDatabase>,
     ) -> Result<Json<String>, String> {
         // Retrieve the product_id of the product to delete
-        let product_result = rocket_db_pools::sqlx::query("SELECT product_id FROM products WHERE name = ?")
-            .bind(&product_name) // Bind the product name to the query
-            .fetch_one(&mut **db) // Fetch the row
-            .await;
+        let product_result =
+            rocket_db_pools::sqlx::query("SELECT product_id FROM products WHERE name = ?")
+                .bind(&product_name) // Bind the product name to the query
+                .fetch_one(&mut **db) // Fetch the row
+                .await;
 
         // Check if the product exists and extract the product_id
         let product_id = match product_result {
@@ -822,10 +852,11 @@ mod api {
         };
 
         // First, remove variants associated with the product
-        let variant_result = rocket_db_pools::sqlx::query("DELETE FROM product_variants WHERE product_id = ?")
-            .bind(product_id) // Bind the product_id to the query
-            .execute(&mut **db) // Execute the delete query within the transaction
-            .await;
+        let variant_result =
+            rocket_db_pools::sqlx::query("DELETE FROM product_variants WHERE product_id = ?")
+                .bind(product_id) // Bind the product_id to the query
+                .execute(&mut **db) // Execute the delete query within the transaction
+                .await;
 
         match variant_result {
             Ok(query_result) => {
@@ -849,7 +880,9 @@ mod api {
             Ok(query_result) => {
                 if query_result.rows_affected() > 0 {
                     // Commit the transaction if both delete operations were successful
-                    Ok(Json("Product and associated variants removed successfully.".to_string()))
+                    Ok(Json(
+                        "Product and associated variants removed successfully.".to_string(),
+                    ))
                 } else {
                     // No product found with the given name
                     Err("Product not found.".to_string())
@@ -883,33 +916,32 @@ mod api {
                 .map(|row| {
                     let row = match row {
                         Ok(row) => row,
-                        Err(e) => 
-                        return Err(format!("Row in product variants not found {e}")),
+                        Err(e) => return Err(format!("Row in product variants not found {e}")),
                     };
                     row.try_into()
                 })
                 .collect()
                 .await;
-            let mut formatted_prod_vars = vec![];
-            for prodvar in prod_vars {
-                match prodvar {
-                    Ok(variant) => {
-                        formatted_prod_vars.push(serde_json::json!({
-                            "quantity": variant.quantity,
-                            "tag_name": variant
-                                .tag_name
-                                .iter()
-                                .map(|tag| tag.to_string()) // Format each tag name
-                                .collect::<Vec<String>>()
-                                .join(" "), // Join all tags into a single string
-                            "product": variant.product,
-                            "varid": variant.varid,
-                            "image": variant.image,
-                        }));
-                    }
-                    Err(e) => return Err(e),
+        let mut formatted_prod_vars = vec![];
+        for prodvar in prod_vars {
+            match prodvar {
+                Ok(variant) => {
+                    formatted_prod_vars.push(serde_json::json!({
+                        "quantity": variant.quantity,
+                        "tag_name": variant
+                            .tag_name
+                            .iter()
+                            .map(|tag| tag.to_string()) // Format each tag name
+                            .collect::<Vec<String>>()
+                            .join(" "), // Join all tags into a single string
+                        "product": variant.product,
+                        "varid": variant.varid,
+                        "image": variant.image,
+                    }));
                 }
+                Err(e) => return Err(e),
             }
+        }
         // Step 4: Return the transformed variants as JSON
         Ok(Json(formatted_prod_vars))
     }
@@ -957,9 +989,15 @@ mod api {
         mut db: Connection<RoboDatabase>,
         jar: &CookieJar<'_>,
     ) -> Result<&'static str, String> {
-        match validate_user(jar.get("token").map(|x| x.value()).unwrap_or("")) {
-            Some(_) => {}
-            None => return Err("Not logged in".into()),
+        match validate_user(
+            jar.get("token").map(|x| x.value()).unwrap_or(""),
+            &mut db,
+            "updatevariant",
+        )
+        .await
+        {
+            Ok(_) => {}
+            Err(e) => return Err(format!("Not logged in: {e}")),
         };
         rocket_db_pools::sqlx::query(
             "UPDATE product_variants SET quantity = ?, tag_name = ? WHERE var_id = ?",
@@ -988,9 +1026,15 @@ mod api {
         jar: &CookieJar<'_>,
     ) -> Result<Json<i32>, String> {
         // Validate the user's token (authentication)
-        match validate_user(jar.get("token").map(|x| x.value()).unwrap_or("")) {
-            Some(_) => {}
-            None => return Err("Not logged in".into()),
+        match validate_user(
+            jar.get("token").map(|x| x.value()).unwrap_or(""),
+            &mut db,
+            "addvariant",
+        )
+        .await
+        {
+            Ok(_) => {}
+            Err(e) => return Err(format!("Not logged in: {e}")),
         };
 
         // Map tags to their categories
@@ -1040,7 +1084,9 @@ mod api {
         match result {
             Ok(row) => {
                 // Extract the generated ID (var_id) from the result
-                let var_id: i32 = row.try_get("var_id").map_err(|e| format!("Error extracting ID: {}", e))?;
+                let var_id: i32 = row
+                    .try_get("var_id")
+                    .map_err(|e| format!("Error extracting ID: {}", e))?;
 
                 // Return the ID as JSON
                 Ok(Json(var_id))
@@ -1048,7 +1094,6 @@ mod api {
             Err(e) => Err(format!("Database error: {}", e)),
         }
     }
-
 
     #[allow(private_interfaces)]
     #[get("/get_websiteinfo")]
@@ -1076,9 +1121,15 @@ mod api {
         mut db: Connection<RoboDatabase>,
         jar: &CookieJar<'_>,
     ) -> Result<Json<Value>, String> {
-        match validate_user(jar.get("token").map(|x| x.value()).unwrap_or("")) {
-            Some(_) => {}
-            None => return Err("Not logged in".into()),
+        match validate_user(
+            jar.get("token").map(|x| x.value()).unwrap_or(""),
+            &mut db,
+            "websiteinfo",
+        )
+        .await
+        {
+            Ok(_) => {}
+            Err(e) => return Err(format!("Not logged in: {e}")),
         };
         // SQL query to update the website information in the database
         let result = rocket_db_pools::sqlx::query(
@@ -1116,11 +1167,18 @@ mod api {
     #[post("/makeimage", data = "<image>")]
     pub(super) async fn make_image(
         mut image: Form<TempFile<'_>>,
+        mut db: Connection<RoboDatabase>,
         jar: &CookieJar<'_>,
     ) -> Result<Json<String>, String> {
-        match validate_user(jar.get("token").map(|x| x.value()).unwrap_or("")) {
-            Some(_) => {}
-            None => return Err("Not logged in".into()),
+        match validate_user(
+            jar.get("token").map(|x| x.value()).unwrap_or(""),
+            &mut db,
+            "image",
+        )
+        .await
+        {
+            Ok(_) => {}
+            Err(e) => return Err(format!("Not logged in: {e}")),
         };
 
         let tfile = image.open();
@@ -1298,13 +1356,11 @@ mod api {
         name: String,
     ) -> Result<Json<Product>, String> {
         // Query the database for the product by ID
-        let row = rocket_db_pools::sqlx::query(
-            "SELECT * FROM products WHERE name = $1"
-        )
-        .bind(name)
-        .fetch_one(&mut **db)
-        .await
-        .map_err(|e| format!("Error fetching product: {e}"))?;
+        let row = rocket_db_pools::sqlx::query("SELECT * FROM products WHERE name = $1")
+            .bind(name)
+            .fetch_one(&mut **db)
+            .await
+            .map_err(|e| format!("Error fetching product: {e}"))?;
 
         // Manually map the row to a Product struct
         let product = Product {
@@ -1327,13 +1383,11 @@ mod api {
         name: String,
     ) -> Result<Json<ProductVariant>, String> {
         // Query the database for the product variant by name
-        let row = rocket_db_pools::sqlx::query(
-            "SELECT * FROM product_variants WHERE var_id = $1"
-        )
-        .bind(name)
-        .fetch_one(&mut **db)
-        .await
-        .map_err(|e| format!("Error fetching product variant: {e}"))?;
+        let row = rocket_db_pools::sqlx::query("SELECT * FROM product_variants WHERE var_id = $1")
+            .bind(name)
+            .fetch_one(&mut **db)
+            .await
+            .map_err(|e| format!("Error fetching product variant: {e}"))?;
 
         // Deserialize the tag_name field if it exists
         let tag: Vec<VarTag> = match row.try_get::<Option<String>, _>("tag_name") {
@@ -1366,7 +1420,11 @@ async fn homepage() -> Option<NamedFile> {
 async fn rocket() -> _ {
     let mut rootroutes = [
         Route::new(Method::Get, "/<path..>", FileServer::from("./pages")),
-        Route::new(Method::Get, "/<path..>", FileServer::from("./product_images")),
+        Route::new(
+            Method::Get,
+            "/<path..>",
+            FileServer::from("./product_images"),
+        ),
     ];
     rootroutes[0].rank = -2;
     rootroutes[1].rank = -1;
@@ -1378,7 +1436,6 @@ async fn rocket() -> _ {
             "/api",
             routes![
                 api::get_items,
-                api::add_item,
                 api::get_websiteinfo,
                 api::update_websiteinfo,
                 api::create_admin,
